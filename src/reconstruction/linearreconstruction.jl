@@ -58,7 +58,11 @@ end
 # van Leer limiter: Lim(a,b) = (a|b| + |a|b) / (|a| + |b|)
 function vanleer(a, b)
     denom = abs(a) + abs(b)
-    return denom == 0.0 ? zero(a) : (a*abs(b) + abs(a)*b) / denom
+    if denom == 0.0
+        return zero(a)
+    else
+        return (a*abs(b) + abs(a)*b) / denom
+    end
 end
 
 function vanleer_slope(left, center, right)
@@ -78,9 +82,9 @@ function mc_slope(left, center, right)
     return mc.(backward_diff, forward_diff)
 end
 
-# superbee limiter: Lim(a,b) = maxmod( minmod2(2a,b), minmod2(a,2b) )
+# superbee limiter: Lim(a,b) = maxmod2( minmod2(2a,b), minmod2(a,2b) )
 function superbee(a, b)
-    return maxmod(minmod2(2a, b), minmod2(a, 2b))
+    return maxmod2(minmod2(2a, b), minmod2(a, 2b))
 end
 
 function superbee_slope(left, center, right)
