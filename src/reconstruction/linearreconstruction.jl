@@ -35,6 +35,65 @@ function minmod_slope(left, center, right, theta)
     return minmod.(theta .* forward_diff, central_diff, theta .* backward_diff)
 
 end
+
+###################################################################################################
+#Adding in more limiters here:
+# 2-argument minmod
+function minmod2(a, b)
+    if (a > 0) && (b > 0)
+        return min(a, b)
+    elseif (a < 0) && (b < 0) 
+        return max(a, b)
+    end
+    return zero(a)
+end
+
+function maxmod2(a, b)
+    if a*b > 0
+        return max(abs(a), abs(b))
+    end
+    return zero(a)
+end
+
+# van Leer limiter: Lim(a,b) = (a|b| + |a|b) / (|a| + |b|)
+function vanleer(a, b)
+    denom = abs(a) + abs(b)
+    return denom == 0.0 ? zero(a) : (a*abs(b) + abs(a)*b) / denom
+end
+
+function vanleer_slope(left, center, right)
+    backward_diff = center .- left   
+    forward_diff  = right  .- center 
+    return vanleer.(backward_diff, forward_diff)
+end
+
+# MC limiter: Lim(a,b) = minmod(2a, (a+b)/2, 2b)
+function mc(a,b)
+    return minmod(2a, 0.5*(a + b), 2b)
+end
+
+function mc_slope(left, center, right)
+    backward_diff = center .- left
+    forward_diff  = right  .- center
+    return mc.(backward_diff, forward_diff)
+end
+
+# superbee limiter: Lim(a,b) = maxmod( minmod2(2a,b), minmod2(a,2b) )
+function superbee(a, b)
+    return maxmod(minmod2(2a, b), minmod2(a, 2b))
+end
+
+function superbee_slope(left, center, right)
+    backward_diff = center .- left
+    forward_diff  = right  .- center
+    return superbee.(backward_diff, forward_diff)
+end
+
+############################################################################################
+
+
+
+
 function reconstruct!(backend, linRec::LinearReconstruction, output_left, output_right, input_conserved, grid::Grid, direction::Direction)
     @assert grid.ghostcells[1] > 1
 
