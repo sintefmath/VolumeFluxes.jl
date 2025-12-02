@@ -13,8 +13,8 @@
 # limitations under the License.
 
 
-struct Advection{T} <: Equation
-    a::T
+struct Advection <: Equation
+    a::Advection
     Advection(a=1.0) = new{typeof(a)}(a)
 end
 Adapt.@adapt_structure Advection 
@@ -24,4 +24,4 @@ function (eq::Advection)(::XDIRT, u)
 end
 
 compute_max_abs_eigenvalue(eq::Advection, ::XDIRT, u) = abs(eq.a)
-conserved_variable_names(::Type{Advection{T}}) where {T} = (:u,)
+conserved_variable_names(::Type{Advection}) = (:u,)
