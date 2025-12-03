@@ -22,8 +22,25 @@ end
 struct LinearLimiterReconstruction{L<:Limiter} <: Reconstruction
     limiter::L
 end
-
 LinearLimiterReconstruction(lim::L) where {L<:Limiter} = LinearLimiterReconstruction{L}(lim)
+
+
+# 3-argument minmod
+function minmod(a, b, c)
+    if (a > 0) && (b > 0) && (c > 0)
+        return min(a, b, c)
+    elseif (a < 0) && (b < 0) && (c < 0)
+        return max(a, b, c)
+    end
+    return zero(a)
+end
+
+function minmod_slope(left, center, right, theta)
+    forward_diff  = right .- center
+    backward_diff = center .- left
+    central_diff  = (forward_diff .+ backward_diff) ./ 2.0
+    return minmod.(theta .* forward_diff, central_diff, theta .* backward_diff)
+end
 
 
 function reconstruct!(backend, linRec::LinearReconstruction, output_left, output_right, input_conserved, grid::Grid, direction::Direction)
@@ -39,7 +56,7 @@ function reconstruct!(backend, linRec::LinearReconstruction, output_left, output
     reconstruct!(backend, linRec, output_left, output_right, input_conserved, grid, direction)
 end
 
-#Adds one generic reconstruction for arbitrary limiter
+#Adds one generic reconstruction for arbitrary limiter in limiters.jl
 function reconstruct!(backend, linRec::LinearLimiterReconstruction, output_left, output_right, input_conserved, grid::Grid, direction::Direction)
     @assert grid.ghostcells[1] > 1
     lim = linRec.limiter

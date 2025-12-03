@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 struct Advection <: Equation
-    a::Advection
-    Advection(a=1.0) = new{typeof(a)}(a)
+    a::Float64          # characteristic speed
 end
-Adapt.@adapt_structure Advection 
+Advection(a::Real = 1.0) = Advection(Float64(a))
+Adapt.@adapt_structure Advection
 
 function (eq::Advection)(::XDIRT, u)
     return @SVector [eq.a * u]

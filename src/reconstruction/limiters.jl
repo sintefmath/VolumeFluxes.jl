@@ -38,10 +38,11 @@ function minmod2(a, b)
 end
 
 function maxmod2(a, b)
-    if a * b > 0
-        return max(abs(a), abs(b))
+    if a * b <= 0
+        return zero(a)
+    else
+        return sign(a) * max(abs(a), abs(b))
     end
-    return zero(a)
 end
 
 # van Leer limiter: Lim(a,b) = (a|b| + |a|b) / (|a| + |b|)
