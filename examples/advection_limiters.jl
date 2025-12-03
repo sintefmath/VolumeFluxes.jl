@@ -56,18 +56,14 @@ function run_advection_with_limiter(N::Int, L::Real, T::Real; a::Real = 1.0, CFL
     timestepper    = RungeKutta2()
     numericalflux  = Godunov(equation)
     system         = ConservedSystem(backend, reconstruction, numericalflux, equation, grid)
-    simulator      = Simulator(backend, system, timestepper, grid)
+    simulator      = Simulator(backend, system, timestepper, grid; cfl = CFL)
     # Interior cell centers (no ghosts)
     x = SinFVM.cell_centers(grid)
     # Initial condition packed as SVector (single conserved variable)
     u0 = x -> @SVector[ classic_advection_IC(x) ]
     initial = u0.(x)
     SinFVM.set_current_state!(simulator, initial)
-
-    # Simple CFL-based max timestep
-    dx = L / N
-    dtmax = CFL * dx / abs(a)
-    simulate_to_time(simulator, T; maximum_timestep = dtmax)
+    simulate_to_time(simulator, T)
 
     # Extract scalar u from Volume of SVectors
     u_state = SinFVM.current_interior_state(simulator).u
@@ -79,7 +75,7 @@ end
 function sinfvm_advection_compare_limiters(N, L, T; a::Real = 1.0, CFL::Float64 = 0.6,
         saveprefix::Union{Nothing,AbstractString} = nothing)
     limiter_map = Dict( 
-        :minmod   => SinFVM.MinmodLimiter(1.0),  # θ = 1 → classical minmod
+        :minmod   => SinFVM.MinmodLimiter(1.0),  # θ = 1 for classical minmod
         :mc       => SinFVM.MCLimiter(),
         :superbee => SinFVM.SuperbeeLimiter(),
         :vanleer  => SinFVM.VanLeerLimiter(),
@@ -93,13 +89,12 @@ function sinfvm_advection_compare_limiters(N, L, T; a::Real = 1.0, CFL::Float64 
         ax  = Axis(fig[1,1], title  = "Limiter: $(String(name)), N=$N, T=$T, a=$a", xlabel = "x", ylabel = "u")
         lines!(ax, x, u_exact; label = "exact", color = "#009AFA", linewidth = 1)
         scatter!(ax, x, u_num; label = "numeric", color = "#E36F47", markersize  = 5, marker = :circle, strokecolor = :black, strokewidth = 1)
-
         axislegend(ax, position = :lt)
         display(fig)
         if saveprefix !== nothing
             fname = "$(saveprefix)_$(String(name)).png"
             try
-                savefig(fig, fname)
+                save(fname, fig)  
             catch err
                 @warn "Could not save figure" error=err path=fname
             end
@@ -110,14 +105,14 @@ function sinfvm_advection_compare_limiters(N, L, T; a::Real = 1.0, CFL::Float64 
 end
 
 
-# Run the simulation
+# Run the simulation and save to figures folder
 N  = 200
 L  = 1.0
 T  = 1.0
 a  = 1.0
 CFL = 0.6
-
-results = sinfvm_advection_compare_limiters(N, L, T; a = a, CFL = CFL, saveprefix = nothing)
+figdir = joinpath(@__DIR__, "Figures_advection_lim")
+results = sinfvm_advection_compare_limiters(N, L, T; a = a, CFL = CFL, saveprefix = joinpath(figdir, "advection"))
 
 
 
