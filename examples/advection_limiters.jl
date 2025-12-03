@@ -112,7 +112,7 @@ T  = 1.0
 a  = 1.0
 CFL = 0.6
 figdir = joinpath(@__DIR__, "Figures_advection_lim")
-results = sinfvm_advection_compare_limiters(N, L, T; a = a, CFL = CFL, saveprefix = joinpath(figdir, "advection"))
+results = sinfvm_advection_compare_limiters(N, L, T; a = a, CFL = CFL, saveprefix = joinpath(figdir, "SinFVM_advection"))
 
 
 
