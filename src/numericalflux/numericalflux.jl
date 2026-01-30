@@ -28,7 +28,9 @@ end
 
 
 include("swe/centralupwind.jl")
+include("swe/centralupwind_twolayer.jl")
 include("advection/godunov.jl")
 include("advection/rusanov.jl")
 include("burgers/godunov.jl")
 include("burgers/rusanov.jl")
+
