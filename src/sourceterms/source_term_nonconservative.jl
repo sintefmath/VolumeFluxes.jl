@@ -13,13 +13,12 @@
 # limitations under the License.
 
 
-struct SourceTermTwoLayer end
+struct SourceTermNonConservative end
 
-function evaluate_directional_source_term!(::SourceTermTwoLayer, output, current_state, cs::ConservedSystem, dir::Direction)
+function evaluate_directional_source_term!(::SourceTermNonConservative, output, current_state, cs::ConservedSystem, dir::Direction)
 
     dx = compute_dx(cs.grid, dir)
     eq = cs.equation
-
     g = eq.g
     r = eq.ρ1 / eq.ρ2
 
@@ -36,7 +35,6 @@ function evaluate_directional_source_term!(::SourceTermTwoLayer, output, current
         N4 = -r * N2
         out_q1[imiddle] += N2
         out_q2[imiddle] += N4
-
         nothing
     end
 

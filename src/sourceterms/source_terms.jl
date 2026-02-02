@@ -27,3 +27,4 @@ end
 include("source_term_bottom.jl")
 include("source_term_rain.jl")
 include("source_term_infiltration.jl")
+include("source_term_nonconservative.jl")
