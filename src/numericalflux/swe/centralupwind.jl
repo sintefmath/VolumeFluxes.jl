@@ -114,12 +114,10 @@ function (centralupwind::CentralUpwind)(::TwoLayerShallowWaterEquations1D,
     if abs(denom) < eq.desingularizing_kappa
         return zero(faceminus), 0.0
     end
-
     F = (aplus .* fluxminus .- aminus .* fluxplus)./denom .+ ((aplus .* aminus) ./denom) .* (faceplus .- faceminus)
-
     if h2m < eq.depth_cutoff && h2p < eq.depth_cutoff
         return F, 0.0
     end
-
+    
     return F, max(abs(aplus), abs(aminus))
 end

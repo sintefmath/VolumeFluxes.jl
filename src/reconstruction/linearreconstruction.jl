@@ -118,3 +118,71 @@ function reconstruct!(backend, linRec::LinearReconstruction, output_left, output
     end
     nothing
 end
+
+
+
+@inline function fix_slope(slope, fix_val, ::TwoLayerShallowWaterEquations1D)
+    return typeof(slope)(slope[1], slope[2], fix_val, slope[4]) #Fix so ω > 0
+end
+
+# --- Two-layer reconstruction with arbitrary limiter: input (h1, h1u1, ω, h2u2) ---
+function reconstruct!(backend, linRec::LinearLimiterReconstruction, output_left, output_right,
+                      input_conserved, grid::Grid, eq::TwoLayerShallowWaterEquations1D, direction::Direction)
+    @assert grid.ghostcells[1] > 1
+    lim = linRec.limiter
+
+    @fvmloop for_each_inner_cell(backend, grid, direction; ghostcells=1) do ileft, imiddle, iright
+        s = slope(lim, input_conserved[ileft], input_conserved[imiddle], input_conserved[iright])
+        B_left  = B_face_left(eq.B, imiddle, direction)
+        B_right = B_face_right(eq.B, imiddle, direction)
+        ω  = input_conserved[imiddle][3]
+        sω = s[3]
+
+        #Adjust slope of ω to avoid negative h2 at faces
+        if (ω - 0.5*sω < B_left)
+            s = fix_slope(s, 2.0 * (ω - B_left), eq)
+        elseif (ω + 0.5*sω < B_right)
+            s = fix_slope(s, 2.0 * (B_right - ω), eq)
+        end
+
+        # Reconstruct (h1, h1u1, ω, h2u2)
+        UL = input_conserved[imiddle] .- 0.5 .* s
+        UR = input_conserved[imiddle] .+ 0.5 .* s
+
+        # Convert ω -> h2 at faces (component 3 becomes h2)
+        h2L = UL[3] - B_left
+        h2R = UR[3] - B_right
+
+        # Extract quantities
+        h1L = UL[1]; q1L = UL[2]; q2L = UL[4]
+        h1R = UR[1]; q1R = UR[2]; q2R = UR[4]
+
+        # Desingularize + recalculate momenta if needed
+        if h1L < eq.depth_cutoff
+            u1L = desingularize(eq, h1L, q1L)
+            q1L = h1L * u1L
+        end
+        if h1R < eq.depth_cutoff
+            u1R = desingularize(eq, h1R, q1R)
+            q1R = h1R * u1R
+        end
+
+        if h2L < eq.depth_cutoff
+            u2L = desingularize(eq, h2L, q2L)
+            q2L = h2L * u2L
+        end
+        if h2R < eq.depth_cutoff
+            u2R = desingularize(eq, h2R, q2R)
+            q2R = h2R * u2R
+        end
+
+        # Build final face states: (h1, h1u1, h2, h2u2)
+        UL = typeof(UL)(h1L, q1L, h2L, q2L)
+        UR = typeof(UR)(h1R, q1R, h2R, q2R)
+
+        # Output face values now in (h1, h1u1, h2, h2u2)
+        output_left[imiddle]  = UL
+        output_right[imiddle] = UR
+    end
+    return nothing
+end
