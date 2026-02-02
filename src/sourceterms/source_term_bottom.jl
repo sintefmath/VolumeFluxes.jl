@@ -33,3 +33,29 @@ function evaluate_directional_source_term!(::SourceTermBottom, output, current_s
         nothing
     end
 end
+
+
+function evaluate_source_term_twolayer!(::SourceTermBottom, output, current_state, cs::ConservedSystem, dir::Direction)
+    dx = compute_dx(cs.grid, dir)
+    B  = cs.equation.B
+    g  = cs.equation.g
+    r  = cs.equation.ρ1 / cs.equation.ρ2   # density ratio
+
+    w_right  = cs.right_buffer.w    
+    w_left   = cs.left_buffer.w
+    h1_right = cs.right_buffer.h1
+    h1_left  = cs.left_buffer.h1
+
+    out_q2 = output.h2u2  # momentum of layer 2
+    @fvmloop for_each_inner_cell(cs.backend, cs.grid, dir) do ileft, imiddle, iright
+        B_right = B_face_right(B, imiddle, dir)  # B_{j+1/2}
+        B_left  = B_face_left(B, imiddle, dir)   # B_{j-1/2}
+        Bx = (B_right - B_left) / dx
+        avg = 0.5 * ( w_right[imiddle] + w_left[imiddle] + r*h1_right[imiddle] + r*h1_left[imiddle] )
+
+        out_q2[imiddle] += -g * avg * Bx
+        nothing
+    end
+
+    return nothing
+end
