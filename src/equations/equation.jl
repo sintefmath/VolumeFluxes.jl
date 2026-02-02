@@ -22,11 +22,12 @@ include("swe_1D_pure.jl")
 include("swe_1D.jl")
 include("swe_2D_pure.jl")
 include("swe_2D.jl")
+include("swe_1D_twolayer.jl")
 
-AllSWE = Union{ShallowWaterEquations1D,ShallowWaterEquations1DPure,ShallowWaterEquationsPure, ShallowWaterEquations}
-AllPracticalSWE = Union{ShallowWaterEquations1D, ShallowWaterEquations}
+AllSWE = Union{ShallowWaterEquations1D,ShallowWaterEquations1DPure,ShallowWaterEquationsPure, ShallowWaterEquations, TwoLayerShallowWaterEquations1D}
+AllPracticalSWE = Union{ShallowWaterEquations1D, ShallowWaterEquations, TwoLayerShallowWaterEquations1D}
 AllPureSWE = Union{ShallowWaterEquations1DPure,ShallowWaterEquationsPure}
-AllSWE1D = Union{ShallowWaterEquations1D, ShallowWaterEquations1DPure}
+AllSWE1D = Union{ShallowWaterEquations1D, ShallowWaterEquations1DPure, TwoLayerShallowWaterEquations1D}
 AllSWE2D = Union{ShallowWaterEquations, ShallowWaterEquationsPure}
 
 desingularize(::AllPureSWE, h) = h # TODO: Do we want to something more here?
@@ -79,3 +80,4 @@ end
 
 B_cell(::AllPureSWE, index) = 0.0
 B_cell(eq::AllPracticalSWE, index) = B_cell(eq.B, index)
+

@@ -69,3 +69,57 @@ function (centralupwind::CentralUpwind)(::AllPracticalSWE, faceminus, faceplus, 
     end    
     return F, max(abs(aplus), abs(aminus))
 end
+
+
+function (centralupwind::CentralUpwind)(::TwoLayerShallowWaterEquations1D,
+                                       faceminus, faceplus,
+                                       direction::Direction)
+
+    eq = centralupwind.eq
+    h2m = faceminus[3]
+    h2p = faceplus[3]
+
+    fluxminus = zero(faceminus)
+    λmax_m = 0.0; λmin_m = 0.0 #Eigenvalues
+    u1m = 0.0; u2m = 0.0       #Velocities
+
+    if h2m > eq.depth_cutoff
+        fluxminus = eq(direction, faceminus...)
+        λm = compute_eigenvalues(eq, direction, faceminus...)
+        λmax_m = maximum(λm); λmin_m = minimum(λm)
+
+        #Desingularized velocities for propagation speeds
+        u1m = desingularize(eq, faceminus[1], faceminus[2])
+        u2m = desingularize(eq, faceminus[3], faceminus[4])
+    end
+
+    fluxplus = zero(faceplus)
+    λmax_p = 0.0; λmin_p = 0.0 #Eigenvalues
+    u1p = 0.0; u2p = 0.0       #Velocities
+
+    if h2p > eq.depth_cutoff
+        fluxplus = eq(direction, faceplus...)
+        λp = compute_eigenvalues(eq, direction, faceplus...)
+        λmax_p = maximum(λp); λmin_p = minimum(λp)
+
+        #Desingularized velocities for propagation speeds
+        u1p = desingularize(eq, faceplus[1], faceplus[2])
+        u2p = desingularize(eq, faceplus[3], faceplus[4])
+    end
+
+    #Compute aplus and aminus
+    aplus  = max(0.0, λmax_m, λmax_p, u1m, u2m, u1p, u2p)
+    aminus = min(0.0, λmin_m, λmin_p, u1m, u2m, u1p, u2p)
+    denom = aplus - aminus
+    if abs(denom) < eq.desingularizing_kappa
+        return zero(faceminus), 0.0
+    end
+
+    F = (aplus .* fluxminus .- aminus .* fluxplus)./denom .+ ((aplus .* aminus) ./denom) .* (faceplus .- faceminus)
+
+    if h2m < eq.depth_cutoff && h2p < eq.depth_cutoff
+        return F, 0.0
+    end
+
+    return F, max(abs(aplus), abs(aminus))
+end

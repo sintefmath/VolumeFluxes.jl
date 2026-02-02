@@ -45,18 +45,16 @@ function Adapt.adapt_structure(to, eq::TwoLayerShallowWaterEquations1D{T, S}) wh
     TwoLayerShallowWaterEquations1D(B; ρ1 = ρ1, ρ2 = ρ2, g = g, depth_cutoff = depth_cutoff, desingularizing_kappa = desingularizing_kappa,)
 end
 
-function (eq::TwoLayerShallowWaterEquations1D)(::XDIRT, h1, h2, h1u1, h2u2)
-    ρ1 = eq.ρ1
-    ρ2 = eq.ρ2
+function (eq::TwoLayerShallowWaterEquations1D)(::XDIRT, h1, h1u1, h2, h2u2)
     g  = eq.g
-
     u1 = desingularize(eq, h1, h1u1)
     u2 = desingularize(eq, h2, h2u2)
 
-    return @SVector [ρ1 * h1 * u1, 
-        ρ2 * h2 * u2,
-        ρ1 * h1 * u1^2 + 0.5 * g * (ρ1 * h1^2 + 2ρ1 * h1 * h2),
-        ρ2 * h2 * u2^2 + 0.5 * g * ρ2 * h2^2]
+    return @SVector [
+        h1u1, 
+        h1*u1^2 + 0.5*g*h1^2,
+        h2u2,                              
+        h2*u2^2 + 0.5*g*h2^2]
 end
 
 
@@ -83,7 +81,7 @@ function lagrange_bounds(c1, c2, c3, c4)
 end
 
 # See Kurganov and Petrova (2009) "Central-Upwind Schemes for Two-Layer Shallow Water Equations" eq. (2.18) - (2.24)
-function compute_eigenvalues(eq::TwoLayerShallowWaterEquations1D,::XDIRT,h1, h2,h1u1, h2u2)
+function compute_eigenvalues(eq::TwoLayerShallowWaterEquations1D,::XDIRT, h1, h1u1, h2, h2u2)
     g  = eq.g
     ρ1 = eq.ρ1
     ρ2 = eq.ρ2
@@ -109,15 +107,15 @@ function compute_eigenvalues(eq::TwoLayerShallowWaterEquations1D,::XDIRT,h1, h2,
         c4 = u1^2*u2^2 - g*(u1^2*h2 + u2^2*h1) + g^2*(1 - r)*h1*h2
 
         λmin, λmax = lagrange_bounds(c1, c2, c3, c4)
-        return @SVector [λmax, λmin]
+        return @SVector [λmin, λmax]
     end
 end
 
 
-function compute_max_abs_eigenvalue(eq::TwoLayerShallowWaterEquations1D, ::XDIRT, h1, h2, h1u1, h2u2)
-    λ = compute_eigenvalues(eq, XDIRT(), h1, h2, h1u1, h2u2)
+function compute_max_abs_eigenvalue(eq::TwoLayerShallowWaterEquations1D, ::XDIRT, h1, h1u1, h2, h2u2)
+    λ = compute_eigenvalues(eq, XDIRT(), h1, h1u1, h2, h2u2)
     return maximum(abs, λ)
 end
 
-#In the discretization they use ω = h_2 + B(x) as the conserved variable instead of h1u1
-conserved_variable_names(::Type{T}) where {T<:TwoLayerShallowWaterEquations1D} = (:h1, :h2, :h1u1, :h2u2)
+#In the discretization they use ω = h_2 + B(x) as the conserved variable instead of h2
+conserved_variable_names(::Type{T}) where {T<:TwoLayerShallowWaterEquations1D} = (:h1, :h1u1, :h2, :h2u2)
