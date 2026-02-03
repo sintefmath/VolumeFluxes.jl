@@ -51,10 +51,10 @@ function (eq::TwoLayerShallowWaterEquations1D)(::XDIRT, h1, q1, h2, q2)
     u2 = desingularize(eq, h2, q2)
 
     return @SVector [
-        q1, 
-        q1*u1 + 0.5*g*h1^2,
-        q2,                              
-        q2*u2 + 0.5*g*h2^2,
+        eq.ρ1 * h1, 
+        eq.ρ1* (q1*u1 + 0.5*g*h1^2),
+        eq.ρ2 * h2,                              
+        eq.ρ2 *(q2*u2 + 0.5*g*h2^2),
         ]
 end
 
@@ -82,14 +82,14 @@ function lagrange_bounds(c1, c2, c3, c4)
 end
 
 # See Kurganov and Petrova (2009) "Central-Upwind Schemes for Two-Layer Shallow Water Equations" eq. (2.18) - (2.24)
-function compute_eigenvalues(eq::TwoLayerShallowWaterEquations1D,::XDIRT, h1, h1u1, h2, h2u2)
+function compute_eigenvalues(eq::TwoLayerShallowWaterEquations1D,::XDIRT, h1, q1, h2, q2)
     g  = eq.g
     ρ1 = eq.ρ1
     ρ2 = eq.ρ2
     r  = ρ1 / ρ2
     H = h1 + h2
-    u1 = desingularize(eq, h1, h1u1)
-    u2 = desingularize(eq, h2, h2u2)
+    u1 = desingularize(eq, h1, q1)
+    u2 = desingularize(eq, h2, q2)
 
     # Check if we can use the eigenvalues (2.20) from Kurganov and Petrova (2009)
     if (u2 - u1)^2 < (1 - r)*g*H
