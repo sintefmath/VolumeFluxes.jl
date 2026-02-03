@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-include("limiters.jl")
-include("noreconstruction.jl")
-include("linearreconstruction.jl")
+struct Advection <: Equation
+    a::Float64          # characteristic speed
+end
+Advection(a::Real = 1.0) = Advection(Float64(a))
+Adapt.@adapt_structure Advection
+
+function (eq::Advection)(::XDIRT, u)
+    return @SVector [eq.a * u]
+end
+
+compute_max_abs_eigenvalue(eq::Advection, ::XDIRT, u) = abs(eq.a)
+conserved_variable_names(::Type{Advection}) = (:u,)

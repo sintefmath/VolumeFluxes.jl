@@ -20,6 +20,7 @@ abstract type Grid{dimension} end
 abstract type NumericalFlux end
 
 abstract type Reconstruction end
+abstract type Limiter end
 
 abstract type System end
 
