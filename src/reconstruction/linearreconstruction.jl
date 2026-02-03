@@ -125,7 +125,7 @@ end
     return typeof(slope)(slope[1], slope[2], fix_val, slope[4]) #Fix so ω > 0
 end
 
-# --- Two-layer reconstruction with arbitrary limiter: input (h1, h1u1, ω, h2u2) ---
+# --- Two-layer reconstruction with arbitrary limiter: input (h1, q1, ω, q2) ---
 function reconstruct!(backend, linRec::LinearLimiterReconstruction, output_left, output_right,
                       input_conserved, grid::Grid, eq::TwoLayerShallowWaterEquations1D, direction::Direction)
     @assert grid.ghostcells[1] > 1
@@ -145,7 +145,7 @@ function reconstruct!(backend, linRec::LinearLimiterReconstruction, output_left,
             s = fix_slope(s, 2.0 * (B_right - ω), eq)
         end
 
-        # Reconstruct (h1, h1u1, ω, h2u2)
+        # Reconstruct (h1, q1, ω, q2)
         UL = input_conserved[imiddle] .- 0.5 .* s
         UR = input_conserved[imiddle] .+ 0.5 .* s
 
@@ -176,11 +176,11 @@ function reconstruct!(backend, linRec::LinearLimiterReconstruction, output_left,
             q2R = h2R * u2R
         end
 
-        # Build final face states: (h1, h1u1, h2, h2u2)
+        # Build final face states: (h1, q1, h2, q2)
         UL = typeof(UL)(h1L, q1L, h2L, q2L)
         UR = typeof(UR)(h1R, q1R, h2R, q2R)
 
-        # Output face values now in (h1, h1u1, h2, h2u2)
+        # Output face values now in (h1, q1, h2, q2)
         output_left[imiddle]  = UL
         output_right[imiddle] = UR
     end

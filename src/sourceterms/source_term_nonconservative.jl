@@ -27,8 +27,8 @@ function evaluate_directional_source_term!(::SourceTermNonConservative, output, 
     out_q2 = output.q2
 
     @fvmloop for_each_inner_cell(cs.backend, cs.grid, dir) do ileft, imiddle, iright
-        UR = cs.right_buffer[imiddle]  # (h1, q1, w, q2) at x_{j+1/2}^-
-        UL = cs.left_buffer[imiddle]   # (h1, q1, w, q2) at x_{j-1/2}^+
+        UR = cs.right_buffer[imiddle]  
+        UL = cs.left_buffer[imiddle]   
 
         h1R = UR[1]; wR  = UR[3]; h1L = UL[1]; wL  = UL[3]
         N2 = g * 0.5 * ((h1R + wR) + (h1L + wL)) * ((h1R - h1L)/dx)
