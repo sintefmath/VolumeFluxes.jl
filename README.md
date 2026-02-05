@@ -1,4 +1,4 @@
-# SinFVM.jl
+# VolumeFluxes.jl
 Finite volume solvers with an emphasis on modelling surface water with the shallow water equations.
 
 ## Setting up the first time

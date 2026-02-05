@@ -1,11 +1,11 @@
-# What is SinFVM.jl?
+# What is VolumeFluxes.jl?
 
-SinFVM (SINTEF Finite Volume Methods) is a Julia framework for solving conservation and balance laws using the finite volume method, with a strong emphasis on modelling of surface water. It is developed and maintained by the
+VolumeFluxes (SINTEF Finite Volume Methods) is a Julia framework for solving conservation and balance laws using the finite volume method, with a strong emphasis on modelling of surface water. It is developed and maintained by the
 [Applied Computational Science](https://www.sintef.no/en/digital/departments-new/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/)
 research group at [SINTEF Digital](https://www.sintef.no/en/digital/).
 
-## Modeling of surface water using SinFVM.jl
-If you are only interested in the modelling of surface water using SinFVM.jl, you can skip directly to TODO INSERT TUTORIAL REF HERE!
+## Modeling of surface water using VolumeFluxes.jl
+If you are only interested in the modelling of surface water using VolumeFluxes.jl, you can skip directly to TODO INSERT TUTORIAL REF HERE!
 
 ## Mathematical foundation
 We consider a general (hyperbolic) conservation or balance law

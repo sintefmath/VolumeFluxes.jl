@@ -1,4 +1,4 @@
 ```@autodocs
-Modules = [SinFVM]
+Modules = [VolumeFluxes]
 Order   = [:function, :type]
 ```
