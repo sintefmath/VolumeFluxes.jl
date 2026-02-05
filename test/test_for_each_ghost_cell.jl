@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-using SinFVM
+using VolumeFluxes
 using CUDA
 using Test
 
@@ -26,11 +26,11 @@ using Test
 
 for backend in get_available_backends()
     nx = 10
-    grid = SinFVM.CartesianGrid(nx)
+    grid = VolumeFluxes.CartesianGrid(nx)
 
-    x_d = SinFVM.convert_to_backend(backend, fill(1.0, nx))
-    y_d = SinFVM.convert_to_backend(backend, fill(2.0, nx))
-    SinFVM.@fvmloop SinFVM.for_each_ghost_cell(backend, grid, XDIR) do i
+    x_d = VolumeFluxes.convert_to_backend(backend, fill(1.0, nx))
+    y_d = VolumeFluxes.convert_to_backend(backend, fill(2.0, nx))
+    VolumeFluxes.@fvmloop VolumeFluxes.for_each_ghost_cell(backend, grid, XDIR) do i
         y_d[i] = x_d[i] - i
     end
     y = collect(y_d)
@@ -39,8 +39,8 @@ for backend in get_available_backends()
 
 
 
-    output_device = SinFVM.convert_to_backend(backend, -42 .* ones(Int64, nx + 2))
-    SinFVM.@fvmloop SinFVM.for_each_ghost_cell(backend, grid, XDIR) do I
+    output_device = VolumeFluxes.convert_to_backend(backend, -42 .* ones(Int64, nx + 2))
+    VolumeFluxes.@fvmloop VolumeFluxes.for_each_ghost_cell(backend, grid, XDIR) do I
         output_device[I] = I[1]
     end
     output = collect(output_device)
@@ -53,9 +53,9 @@ for backend in get_available_backends()
         end
     end
 
-    grid2 = SinFVM.CartesianGrid(nx, gc=2)
-    output_device = SinFVM.convert_to_backend(backend, -42 .* ones(Int64, nx + 4))
-    SinFVM.@fvmloop SinFVM.for_each_ghost_cell(backend, grid2, XDIR) do I
+    grid2 = VolumeFluxes.CartesianGrid(nx, gc=2)
+    output_device = VolumeFluxes.convert_to_backend(backend, -42 .* ones(Int64, nx + 4))
+    VolumeFluxes.@fvmloop VolumeFluxes.for_each_ghost_cell(backend, grid2, XDIR) do I
         output_device[I] = I[1]
     end
     output = collect(output_device)

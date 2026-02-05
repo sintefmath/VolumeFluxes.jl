@@ -19,9 +19,9 @@
 # SOFTWARE.
 
 # # Optimization of wall placement using AD
-# In this example, we will setup a simple model of a dam break scenario. We will use the shallow water equations to simulate the flow of water over a terrain. We will use the `SinFVM` package to setup and solve the model. The model will be solved using the `RungeKutta2` time-stepping method. We will use the `CairoMakie` package to visualize the results of the simulation.
+# In this example, we will setup a simple model of a dam break scenario. We will use the shallow water equations to simulate the flow of water over a terrain. We will use the `VolumeFluxes` package to setup and solve the model. The model will be solved using the `RungeKutta2` time-stepping method. We will use the `CairoMakie` package to visualize the results of the simulation.
 
-using SinFVM
+using VolumeFluxes
 using StaticArrays
 using ForwardDiff
 using Optim
@@ -41,9 +41,9 @@ end;
 # Callback for the simulator
 function (tw::TotalWaterAtCell)(time, simulator)
     #Get the current water height at the specified cell
-    current_h = SinFVM.current_interior_state(simulator).h[tw.cell_index]
+    current_h = VolumeFluxes.current_interior_state(simulator).h[tw.cell_index]
     if current_h > tw.cutoff
-        dt = ForwardDiff.value(SinFVM.current_timestep(simulator))
+        dt = ForwardDiff.value(VolumeFluxes.current_timestep(simulator))
         area_of_cell = tw.area_of_cell
         tw.total_water += dt * area_of_cell * current_h
         #Exit if any gradient is NaN
@@ -58,8 +58,8 @@ end
 function setup_simulator(; backend=make_cpu_backend(), wall_height, wall_position)
     #Set up the grid
     nx = 32
-    grid = SinFVM.CartesianGrid(nx; gc=2, boundary=SinFVM.WallBC(), extent=[0.0 200])
-    x = SinFVM.cell_centers(grid)
+    grid = VolumeFluxes.CartesianGrid(nx; gc=2, boundary=VolumeFluxes.WallBC(), extent=[0.0 200])
+    x = VolumeFluxes.cell_centers(grid)
 
     #Define the terrain
     function terrain(x)
@@ -67,33 +67,33 @@ function setup_simulator(; backend=make_cpu_backend(), wall_height, wall_positio
         b += wall_height * exp(-(x - wall_position)^2 / 30.3)
         return b
     end
-    B_data = [terrain(x) for x in SinFVM.cell_faces(grid, interior=false)]
-    B = SinFVM.BottomTopography1D(B_data, backend, grid)
-    Bcenter = SinFVM.collect_topography_cells(B, grid)
+    B_data = [terrain(x) for x in VolumeFluxes.cell_faces(grid, interior=false)]
+    B = VolumeFluxes.BottomTopography1D(B_data, backend, grid)
+    Bcenter = VolumeFluxes.collect_topography_cells(B, grid)
 
     #We choose the Shallow Water Equations in 1D
-    eq = SinFVM.ShallowWaterEquations1D(B; depth_cutoff=10^-3, desingularizing_kappa=10^-3)
+    eq = VolumeFluxes.ShallowWaterEquations1D(B; depth_cutoff=10^-3, desingularizing_kappa=10^-3)
 
     #We choose a linear reconstruction to get a second order accurate solution
-    rec = SinFVM.LinearReconstruction(2)
+    rec = VolumeFluxes.LinearReconstruction(2)
 
     #We choose the Central Upwind numerical flux
-    flux = SinFVM.CentralUpwind(eq)
+    flux = VolumeFluxes.CentralUpwind(eq)
 
     #We add a source term at the bottom
-    bst = SinFVM.SourceTermBottom()
+    bst = VolumeFluxes.SourceTermBottom()
 
     #We add a friction term
-    friction = SinFVM.ImplicitFriction(friction_function=SinFVM.friction_bsa2012)
+    friction = VolumeFluxes.ImplicitFriction(friction_function=VolumeFluxes.friction_bsa2012)
 
     #And we setup the conserved system
-    conserved_system = SinFVM.ConservedSystem(backend, rec, flux, eq, grid, [bst], friction)
+    conserved_system = VolumeFluxes.ConservedSystem(backend, rec, flux, eq, grid, [bst], friction)
 
     #We use the RungeKutta2 method to get second order in time as well
-    timestepper = SinFVM.RungeKutta2()
+    timestepper = VolumeFluxes.RungeKutta2()
 
     #We create the simulator (with a CFL condition of 0.1 for the time stepping)
-    simulator = SinFVM.Simulator(backend, conserved_system, timestepper, grid, cfl=0.1)
+    simulator = VolumeFluxes.Simulator(backend, conserved_system, timestepper, grid, cfl=0.1)
 
     #Define the initial conditions
     function u0(x)
@@ -104,7 +104,7 @@ function setup_simulator(; backend=make_cpu_backend(), wall_height, wall_positio
         end
     end
     initial = u0.(x)
-    SinFVM.set_current_state!(simulator, initial)
+    VolumeFluxes.set_current_state!(simulator, initial)
 
     return simulator
 end
@@ -119,13 +119,13 @@ function simple_dambreak_1D_optim(; T, wall_height, wall_position)
     simulator = setup_simulator(backend=backend, wall_height=wall_height, wall_position=wall_position)
 
     #Specify index of the cell in which we wish to minimize the water
-    nx = SinFVM.number_of_interior_cells(simulator.grid)
+    nx = VolumeFluxes.number_of_interior_cells(simulator.grid)
     cell_index = Int64(nx - round(nx / 25)) #IMPORTANT: Need to use CartesianIndex in 2d!
 
     #Run the simulation and return the total water at the specified cell
-    area_of_cell = SinFVM.compute_dx(simulator.grid) #IMPORTANT: Different for 2D!
+    area_of_cell = VolumeFluxes.compute_dx(simulator.grid) #IMPORTANT: Different for 2D!
     callback = TotalWaterAtCell(cell_index=cell_index, area_of_cell=area_of_cell, total_water=ADType(0.0))
-    SinFVM.simulate_to_time(simulator, T, callback=callback)
+    VolumeFluxes.simulate_to_time(simulator, T, callback=callback)
     return callback.total_water
 end;
 

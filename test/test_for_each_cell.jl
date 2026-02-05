@@ -18,15 +18,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-using SinFVM
+using VolumeFluxes
 using Test 
 for backend in get_available_backends()
     nx = 10
-    grid = SinFVM.CartesianGrid(nx)
+    grid = VolumeFluxes.CartesianGrid(nx)
 
-    output_array = SinFVM.convert_to_backend(backend, zeros(nx + 2))
+    output_array = VolumeFluxes.convert_to_backend(backend, zeros(nx + 2))
 
-    SinFVM.@fvmloop SinFVM.for_each_cell(backend, grid) do index
+    VolumeFluxes.@fvmloop VolumeFluxes.for_each_cell(backend, grid) do index
         output_array[index] = index
     end
 

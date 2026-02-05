@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-using SinFVM
+using VolumeFluxes
 using Test
 import CUDA
 using StaticArrays
@@ -27,10 +27,10 @@ using Logging
 for backend in get_available_backends()
     nx = 10
     ny = 15
-    grid = SinFVM.CartesianGrid(nx, ny)
-    equation = SinFVM.ShallowWaterEquationsPure()
+    grid = VolumeFluxes.CartesianGrid(nx, ny)
+    equation = VolumeFluxes.ShallowWaterEquationsPure()
     @debug "Creating volume"
-    volume = SinFVM.Volume(backend, equation, grid)
+    volume = VolumeFluxes.Volume(backend, equation, grid)
     @debug "Setting volume"
     CUDA.@allowscalar volume[1, 1] = @SVector [2.0, 3.0, 4.0]
     @debug "Getting volume"
@@ -38,7 +38,7 @@ for backend in get_available_backends()
     @debug "Got volume"
     @test size(volume) == size(grid) == (nx + 2, ny + 2)
 
-    if backend isa SinFVM.CPUBackend
+    if backend isa VolumeFluxes.CPUBackend
         all_elements = []
         for (n, element) in enumerate(volume)
             @test element isa SVector{3}
@@ -81,7 +81,7 @@ for backend in get_available_backends()
         end
     end
 
-    if backend isa SinFVM.CPUBackend
+    if backend isa VolumeFluxes.CPUBackend
         all_elements = []
         for (n, element) in enumerate(volume.hu)
             @test element isa Real
@@ -90,14 +90,14 @@ for backend in get_available_backends()
         @test length(all_elements) == length(volume)
     end
 
-    interior_volume = SinFVM.InteriorVolume(volume)
+    interior_volume = VolumeFluxes.InteriorVolume(volume)
     collected_interior_volume = collect(interior_volume)
 
     CUDA.@allowscalar interior_volume[3, 2] = @SVector [42, 43, 44]
     CUDA.@allowscalar @test interior_volume[3, 2] == @SVector [42, 43, 44]
     CUDA.@allowscalar @test volume[4, 3] == @SVector [42, 43, 44]
 
-    if backend isa SinFVM.CPUBackend
+    if backend isa VolumeFluxes.CPUBackend
         all_elements = []
         for (n, element) in enumerate(interior_volume)
             @test element isa SVector{3, <:Real}
@@ -110,7 +110,7 @@ for backend in get_available_backends()
 
     @test length(interior_h) == prod(size(volume) .- 2 .* grid.ghostcells)
     @test size(interior_h) == Tuple(Int64(x) for x in size(volume) .- 2 .* grid.ghostcells)
-    if backend isa SinFVM.CPUBackend
+    if backend isa VolumeFluxes.CPUBackend
         all_elements = []
         for (n, element) in enumerate(interior_h)
             @test element isa Real

@@ -26,29 +26,29 @@ using StaticArrays
 module Correct
 include("fasit.jl")
 end
-using SinFVM
+using VolumeFluxes
 function run_simulation()
 
     u0 = x -> @SVector[exp.(-(x - 0.5)^2 / 0.001) .+ 1.5, 0.0 .* x]
     nx = 1024
-    grid = SinFVM.CartesianGrid(nx; gc=2)
+    grid = VolumeFluxes.CartesianGrid(nx; gc=2)
     #backend = make_cuda_backend()
     backend = make_cpu_backend()
 
-    equation = SinFVM.ShallowWaterEquations1D()
-    pure_equation = SinFVM.ShallowWaterEquations1DPure()
-    reconstruction = SinFVM.NoReconstruction()
-    linrec = SinFVM.LinearReconstruction(1.05)
-    numericalflux = SinFVM.CentralUpwind(equation)
-    pure_numericalflux = SinFVM.CentralUpwind(pure_equation)
+    equation = VolumeFluxes.ShallowWaterEquations1D()
+    pure_equation = VolumeFluxes.ShallowWaterEquations1DPure()
+    reconstruction = VolumeFluxes.NoReconstruction()
+    linrec = VolumeFluxes.LinearReconstruction(1.05)
+    numericalflux = VolumeFluxes.CentralUpwind(equation)
+    pure_numericalflux = VolumeFluxes.CentralUpwind(pure_equation)
     conserved_system =
-        SinFVM.ConservedSystem(backend, reconstruction, numericalflux, equation, grid)
-    timestepper = SinFVM.ForwardEulerStepper()
+        VolumeFluxes.ConservedSystem(backend, reconstruction, numericalflux, equation, grid)
+    timestepper = VolumeFluxes.ForwardEulerStepper()
     linrec_conserved_system = 
-        SinFVM.ConservedSystem(backend, linrec, numericalflux, equation, grid)
+        VolumeFluxes.ConservedSystem(backend, linrec, numericalflux, equation, grid)
     pure_linrec_conserved_system = 
-        SinFVM.ConservedSystem(backend, linrec, pure_numericalflux, pure_equation, grid)
-    x = SinFVM.cell_centers(grid)
+        VolumeFluxes.ConservedSystem(backend, linrec, pure_numericalflux, pure_equation, grid)
+    x = VolumeFluxes.cell_centers(grid)
     initial = u0.(x)
     T = 0.05
 
@@ -75,18 +75,18 @@ T=$(T)",
 
    
 
-    simulator = SinFVM.Simulator(backend, conserved_system, timestepper, grid)
-    linrec_simulator = SinFVM.Simulator(backend, linrec_conserved_system, timestepper, grid; cfl=0.2)
-    pure_linrec_simulator = SinFVM.Simulator(backend, pure_linrec_conserved_system, timestepper, grid; cfl=0.2)
+    simulator = VolumeFluxes.Simulator(backend, conserved_system, timestepper, grid)
+    linrec_simulator = VolumeFluxes.Simulator(backend, linrec_conserved_system, timestepper, grid; cfl=0.2)
+    pure_linrec_simulator = VolumeFluxes.Simulator(backend, pure_linrec_conserved_system, timestepper, grid; cfl=0.2)
 
     
-    SinFVM.set_current_state!(linrec_simulator, initial)
-    SinFVM.set_current_state!(simulator, initial)
-    SinFVM.set_current_state!(pure_linrec_simulator, initial)
+    VolumeFluxes.set_current_state!(linrec_simulator, initial)
+    VolumeFluxes.set_current_state!(simulator, initial)
+    VolumeFluxes.set_current_state!(pure_linrec_simulator, initial)
     
 
 
-    initial_state = SinFVM.current_interior_state(simulator)
+    initial_state = VolumeFluxes.current_interior_state(simulator)
     lines!(ax, x, collect(initial_state.h), label=L"h_0(x)")
     lines!(ax2, x, collect(initial_state.hu), label=L"hu_0(x)")
 
@@ -95,15 +95,15 @@ T=$(T)",
  
    
 
-    result = collect(SinFVM.current_state(simulator))
-    @time SinFVM.simulate_to_time(simulator, T) 
-    @time SinFVM.simulate_to_time(linrec_simulator, T)
-    @time SinFVM.simulate_to_time(pure_linrec_simulator, T)
+    result = collect(VolumeFluxes.current_state(simulator))
+    @time VolumeFluxes.simulate_to_time(simulator, T) 
+    @time VolumeFluxes.simulate_to_time(linrec_simulator, T)
+    @time VolumeFluxes.simulate_to_time(pure_linrec_simulator, T)
 
     
-    result = SinFVM.current_interior_state(simulator)
-    linrec_results = SinFVM.current_interior_state(linrec_simulator)
-    pure_results = SinFVM.current_interior_state(pure_linrec_simulator)
+    result = VolumeFluxes.current_interior_state(simulator)
+    linrec_results = VolumeFluxes.current_interior_state(linrec_simulator)
+    pure_results = VolumeFluxes.current_interior_state(pure_linrec_simulator)
     
     lines!(
         ax,

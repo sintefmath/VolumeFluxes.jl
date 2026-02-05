@@ -52,7 +52,7 @@ end
     bottom_topography
 end
 
-function bottom_per_cell(bottom_topography::SinFVM.BottomTopography2D)
+function bottom_per_cell(bottom_topography::VolumeFluxes.BottomTopography2D)
     bottom_per_cell(bottom_topography.B)
 end
 
@@ -60,24 +60,24 @@ function bottom_per_cell(bottom_topography::Array)
     dimensions = size(bottom_topography) .- (1, 1)
     data = zeros(dimensions)
 
-    bottom_topography = SinFVM.BottomTopography2D(collect(bottom_topography); should_never_be_called=1)
+    bottom_topography = VolumeFluxes.BottomTopography2D(collect(bottom_topography); should_never_be_called=1)
     for j in 1:dimensions[2]
         for i in 1:dimensions[1]
-            data[i, j] = SinFVM.B_cell(bottom_topography, i, j)
+            data[i, j] = VolumeFluxes.B_cell(bottom_topography, i, j)
         end
     end
 
     return data
 end
 
-function bottom_per_cell(bottom_topography::SinFVM.BottomTopography2D)
+function bottom_per_cell(bottom_topography::VolumeFluxes.BottomTopography2D)
     dimensions = size(bottom_topography.B) .- (1, 1)
     data = zeros(dimensions)
 
-    bottom_topography = SinFVM.BottomTopography2D(collect(bottom_topography.B); should_never_be_called=1)
+    bottom_topography = VolumeFluxes.BottomTopography2D(collect(bottom_topography.B); should_never_be_called=1)
     for j in 1:dimensions[2]
         for i in 1:dimensions[1]
-            data[i, j] = SinFVM.B_cell(bottom_topography, i, j)
+            data[i, j] = VolumeFluxes.B_cell(bottom_topography, i, j)
         end
     end
 
@@ -85,7 +85,7 @@ function bottom_per_cell(bottom_topography::SinFVM.BottomTopography2D)
 end
 function (callback::TotalWaterVolume)(t, simulator)
     bottom_avg = bottom_per_cell(callback.bottom_topography)
-    h = collect(SinFVM.current_interior_state(simulator).h) .- bottom_avg[3:end-2, 3:end-2]
+    h = collect(VolumeFluxes.current_interior_state(simulator).h) .- bottom_avg[3:end-2, 3:end-2]
     push!(callback.water_volume, sum(h))
     push!(callback.times, t)
     mkpath("figs/bay/$(basename)")
@@ -112,7 +112,7 @@ mkpath("data")
 
 function callback(bottom, basename, t, simulator)
 
-    state = SinFVM.current_interior_state(simulator)
+    state = VolumeFluxes.current_interior_state(simulator)
     tstr = string(t)
     w = collect(state.h)
     h = w .- bottom[3:end-3, 3:end-3]

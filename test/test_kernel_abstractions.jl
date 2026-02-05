@@ -21,7 +21,7 @@
 using KernelAbstractions
 import CUDA
 using StaticArrays
-using SinFVM
+using VolumeFluxes
 
 function get_variable_names_referred(expression)
     nothing
@@ -171,7 +171,7 @@ function run_ka_test()
 
 
 end
-if SinFVM.has_cuda_backend()
+if VolumeFluxes.has_cuda_backend()
     run_ka_test()
 end
 #@show output

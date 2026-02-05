@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-using SinFVM
+using VolumeFluxes
 using Test
 
 # TODO: Go through tests and check they do not take longer time than necessary
@@ -26,7 +26,7 @@ using CairoMakie
 
 # Disable showing the plot in CairoMakie
 CairoMakie.activate!(type = "svg")
-@testset "SinFVM tests" begin
+@testset "VolumeFluxes tests" begin
     # Run all scripts in test/test_*.jl
     ls_test = readdir("test")
     for test_file in readdir("test")

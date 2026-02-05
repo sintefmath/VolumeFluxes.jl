@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-using SinFVM
+using VolumeFluxes
 using CUDA
 using Test
 using PrettyTables
@@ -28,9 +28,9 @@ for backend in get_available_backends()
     ny = 8
 
     for gc in [1, 2]
-        grid = SinFVM.CartesianGrid(nx, ny; gc=gc)
-        bc = SinFVM.PeriodicBC()
-        equation = SinFVM.Burgers()
+        grid = VolumeFluxes.CartesianGrid(nx, ny; gc=gc)
+        bc = VolumeFluxes.PeriodicBC()
+        equation = VolumeFluxes.Burgers()
 
         input = -42 * ones(nx + 2 * gc, ny + 2 * gc)
         for j in (gc+1):(ny+gc)
@@ -38,8 +38,8 @@ for backend in get_available_backends()
                 input[i, j] = j * nx + i
             end
         end
-        input_device = SinFVM.convert_to_backend(backend, input)
-        SinFVM.update_bc!(backend, bc, grid, equation, input_device)
+        input_device = VolumeFluxes.convert_to_backend(backend, input)
+        VolumeFluxes.update_bc!(backend, bc, grid, equation, input_device)
         output = collect(input_device)
 
         # pretty_table(output)

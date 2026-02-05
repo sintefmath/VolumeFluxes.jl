@@ -19,12 +19,12 @@
 # SOFTWARE.
 
 # # Shallow Water Equations in 1D without bottom Bottom topography
-# In this example, we will solve the Shallow Water Equations in 1D without bottom topography. We will use the `SinFVM` package to setup and solve the model. The model will be solved using the `ForwardEuler` time-stepping method. We will use the `CairoMakie` package to visualize the results of the simulation.
+# In this example, we will solve the Shallow Water Equations in 1D without bottom topography. We will use the `VolumeFluxes` package to setup and solve the model. The model will be solved using the `ForwardEuler` time-stepping method. We will use the `CairoMakie` package to visualize the results of the simulation.
 
 using CairoMakie
 using Cthulhu
 using StaticArrays
-using SinFVM
+using VolumeFluxes
 
 # ## Setup the grid and initial conditions
 # At the very first, we need to set the backend. For this example, we will use the CPU backend.
@@ -37,7 +37,7 @@ grid = CartesianGrid(nx; gc=2)
 
 # We define the initial conditions for the simulation
 u0 = x -> @SVector[exp.(-(x - 0.5)^2 / 0.001) .+ 1.5, 0.0 .* x]
-x = SinFVM.cell_centers(grid)
+x = VolumeFluxes.cell_centers(grid)
 initial = u0.(x)
 
 # ## Setup the simulation
@@ -63,7 +63,7 @@ T = 0.05
 simulator = Simulator(backend, conserved_system, timestepper, grid)
 
 # Set the initial data created above
-SinFVM.set_current_state!(simulator, initial)
+VolumeFluxes.set_current_state!(simulator, initial)
     
 # ## Visualization
 # We will visualize the results using the `CairoMakie` package, so first we create a figure with two axes
@@ -89,7 +89,7 @@ T=$(T)",
 )
 
 # We get the current state of the simulator (initial state since the simulator has not run yet)
-initial_state = SinFVM.current_interior_state(simulator)
+initial_state = VolumeFluxes.current_interior_state(simulator)
 nothing
 
 # The initial_state is a Volume object (technically an InteriorVolume), so we can access the data using the `h` and `hu` fields
@@ -99,11 +99,11 @@ f
 
 # ## Run the simulation
 # We run the simulation to the final time `T`
-@time SinFVM.simulate_to_time(simulator, T) 
+@time VolumeFluxes.simulate_to_time(simulator, T) 
 
 # ## Visualize the results
 # We get the final state of the simulation   
-result = SinFVM.current_interior_state(simulator)
+result = VolumeFluxes.current_interior_state(simulator)
 nothing
 
 # and plot said results

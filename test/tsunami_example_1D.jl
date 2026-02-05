@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-using SinFVM
+using VolumeFluxes
 using Test
 using StaticArrays
 using CairoMakie
@@ -26,7 +26,7 @@ using CairoMakie
 function tsunami(;T=10, dt=1, w0_height=1.0, bump=false)
 
     nx = 1024
-    grid = SinFVM.CartesianGrid(nx; gc=2, boundary=SinFVM.WallBC(), extent=[0.0  1000.0], )
+    grid = VolumeFluxes.CartesianGrid(nx; gc=2, boundary=VolumeFluxes.WallBC(), extent=[0.0  1000.0], )
     function terrain(x)
         b =  25/1000*(x - 800)
         if bump
@@ -35,37 +35,37 @@ function tsunami(;T=10, dt=1, w0_height=1.0, bump=false)
         return b
     end
     
-    B_data = Float64[terrain(x) for x in SinFVM.cell_faces(grid, interior=false)]
+    B_data = Float64[terrain(x) for x in VolumeFluxes.cell_faces(grid, interior=false)]
 
     backend = make_cpu_backend()
-    B = SinFVM.BottomTopography1D(B_data, backend, grid)
-    eq = SinFVM.ShallowWaterEquations1D(B)
-    rec = SinFVM.LinearReconstruction(2)
-    flux = SinFVM.CentralUpwind(eq)
-    bst = SinFVM.SourceTermBottom()
-    conserved_system = SinFVM.ConservedSystem(backend, rec, flux, eq, grid, bst)
+    B = VolumeFluxes.BottomTopography1D(B_data, backend, grid)
+    eq = VolumeFluxes.ShallowWaterEquations1D(B)
+    rec = VolumeFluxes.LinearReconstruction(2)
+    flux = VolumeFluxes.CentralUpwind(eq)
+    bst = VolumeFluxes.SourceTermBottom()
+    conserved_system = VolumeFluxes.ConservedSystem(backend, rec, flux, eq, grid, bst)
     
-    #balance_system = SinFVM.BalanceSystem(conserved_system, bst)
+    #balance_system = VolumeFluxes.BalanceSystem(conserved_system, bst)
     
     
-    timestepper = SinFVM.ForwardEulerStepper()
-    simulator = SinFVM.Simulator(backend, conserved_system, timestepper, grid, cfl=0.1)
+    timestepper = VolumeFluxes.ForwardEulerStepper()
+    simulator = VolumeFluxes.Simulator(backend, conserved_system, timestepper, grid, cfl=0.1)
     
-    x = SinFVM.cell_centers(grid)
-    xf = SinFVM.cell_faces(grid)
+    x = VolumeFluxes.cell_centers(grid)
+    xf = VolumeFluxes.cell_faces(grid)
     u0 = x -> @SVector[w0_height*(x < 100), 0.0]
     initial = u0.(x)
 
-    SinFVM.set_current_state!(simulator, initial)
+    VolumeFluxes.set_current_state!(simulator, initial)
     all_t = []
     all_h = []
     all_hu = []
     t = 0.0
     while t < T
         t += dt
-        SinFVM.simulate_to_time(simulator, t)
+        VolumeFluxes.simulate_to_time(simulator, t)
         
-        state = SinFVM.current_interior_state(simulator)
+        state = VolumeFluxes.current_interior_state(simulator)
         push!(all_h, collect(state.h))
         push!(all_hu, collect(state.hu))
         push!(all_t, t)

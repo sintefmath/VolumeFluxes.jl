@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-using SinFVM
+using VolumeFluxes
 using CUDA
 using Test
 
@@ -26,13 +26,13 @@ for backend in get_available_backends()
     for gc in [1, 2]
         nx = 64
         ny = 32
-        grid = SinFVM.CartesianGrid(nx, ny; gc=gc)
+        grid = VolumeFluxes.CartesianGrid(nx, ny; gc=gc)
         
 
         
-        output = SinFVM.convert_to_backend(backend, -42 * ones(Int64, nx + 2*gc, ny + 2*gc, 3))
+        output = VolumeFluxes.convert_to_backend(backend, -42 * ones(Int64, nx + 2*gc, ny + 2*gc, 3))
         
-        SinFVM.@fvmloop SinFVM.for_each_cell(backend, grid) do index
+        VolumeFluxes.@fvmloop VolumeFluxes.for_each_cell(backend, grid) do index
             output[index,1] = index[1]
             output[index,2] = index[2]
             output[index,3] = index[1] + index[2]

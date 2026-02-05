@@ -22,11 +22,11 @@ import CairoMakie, Images # for visualization and loading of textures
 import ColorSchemes
 import ArchGDAL # for loading of topographical grids from files in geotiff format
 using CairoMakie
-using SinFVM
+using VolumeFluxes
 import CUDA
 using StaticArrays
 include("example_tools.jl")
-datapath_testdata() = "/home/kjetil/projects/swamp/SinFVM.jl/"
+datapath_testdata() = "/home/kjetil/projects/swamp/VolumeFluxes.jl/"
 # ## Prepare data
 
 # The package with SWIM testdata is provided as a Julia artifact, which can be
@@ -100,7 +100,7 @@ end
 include("example_tools.jl")
 
 
-for backend in [SinFVM.make_cpu_backend(), SinFVM.make_cuda_backend()]
+for backend in [VolumeFluxes.make_cpu_backend(), VolumeFluxes.make_cuda_backend()]
     with_buildings = grid_dtm .+ (Float64.(building_mask) .!= 0.0) .* (grid_dsm .- grid_dtm)
     terrain = with_buildings
     upper_corner = Float64.(size(terrain))
@@ -122,10 +122,10 @@ for backend in [SinFVM.make_cpu_backend(), SinFVM.make_cuda_backend()]
     end
 
     grid_size = size(terrain) .- (5, 5)
-    grid = SinFVM.CartesianGrid(grid_size...; gc=2, boundary=SinFVM.NeumannBC(), extent=[0 upper_corner[1]; 0 upper_corner[2]])
+    grid = VolumeFluxes.CartesianGrid(grid_size...; gc=2, boundary=VolumeFluxes.NeumannBC(), extent=[0 upper_corner[1]; 0 upper_corner[2]])
     factor_cpu = bottom_per_cell(coarsen(Float64.(permeable_mask) .* (1.0 .- (Float64.(building_mask) .!= 0.0)), coarsen_times))
 
-    factor = SinFVM.convert_to_backend(backend, factor_cpu)
+    factor = VolumeFluxes.convert_to_backend(backend, factor_cpu)
 
     # with_theme(theme_latexfonts()) do
     #     f = Figure(size=(3*800, 600))
@@ -142,30 +142,30 @@ for backend in [SinFVM.make_cpu_backend(), SinFVM.make_cuda_backend()]
     #     display(f)
     # end
 
-    #infiltration = SinFVM.HortonInfiltration(grid, backend; factor=factor)
-    infiltration = SinFVM.ConstantInfiltration(15 / (1000.0) / 3600.0)
-    bottom = SinFVM.BottomTopography2D(terrain, backend, grid)
-    bottom_source = SinFVM.SourceTermBottom()
-    equation = SinFVM.ShallowWaterEquations(bottom; depth_cutoff=8e-2, desingularizing_kappa=8e-2)
-    #reconstruction = SinFVM.LinearReconstruction()
-    reconstruction = SinFVM.NoReconstruction()
-    numericalflux = SinFVM.CentralUpwind(equation)
-    constant_rain = SinFVM.ConstantRain(15 / (1000.0))
-    #friction = SinFVM.ImplicitFriction()
-    friction = SinFVM.ImplicitFriction(friction_function=SinFVM.friction_bsa2012)
+    #infiltration = VolumeFluxes.HortonInfiltration(grid, backend; factor=factor)
+    infiltration = VolumeFluxes.ConstantInfiltration(15 / (1000.0) / 3600.0)
+    bottom = VolumeFluxes.BottomTopography2D(terrain, backend, grid)
+    bottom_source = VolumeFluxes.SourceTermBottom()
+    equation = VolumeFluxes.ShallowWaterEquations(bottom; depth_cutoff=8e-2, desingularizing_kappa=8e-2)
+    #reconstruction = VolumeFluxes.LinearReconstruction()
+    reconstruction = VolumeFluxes.NoReconstruction()
+    numericalflux = VolumeFluxes.CentralUpwind(equation)
+    constant_rain = VolumeFluxes.ConstantRain(15 / (1000.0))
+    #friction = VolumeFluxes.ImplicitFriction()
+    friction = VolumeFluxes.ImplicitFriction(friction_function=VolumeFluxes.friction_bsa2012)
 
     with_theme(theme_latexfonts()) do
         f = Figure(xlabel="Time", ylabel="Infiltration")
         ax = Axis(f[1, 1])
         t = LinRange(0, 60 * 60 * 24.0, 10000)
-        CUDA.@allowscalar infiltrationf(t) = SinFVM.compute_infiltration(infiltration, t, CartesianIndex(30, 30))
+        CUDA.@allowscalar infiltrationf(t) = VolumeFluxes.compute_infiltration(infiltration, t, CartesianIndex(30, 30))
         CUDA.@allowscalar lines!(ax, t ./ 60 ./ 60, infiltrationf.(t))
 
         save("figs/bay/infiltration.png", f, px_per_unit=2)
     end
 
     conserved_system =
-        SinFVM.ConservedSystem(backend,
+        VolumeFluxes.ConservedSystem(backend,
             reconstruction,
             numericalflux,
             equation,
@@ -176,21 +176,21 @@ for backend in [SinFVM.make_cpu_backend(), SinFVM.make_cuda_backend()]
                 bottom_source
             ],
             friction)
-    timestepper = SinFVM.RungeKutta2()
-    simulator = SinFVM.Simulator(backend, conserved_system, timestepper, grid; cfl=0.1)
+    timestepper = VolumeFluxes.RungeKutta2()
+    simulator = VolumeFluxes.Simulator(backend, conserved_system, timestepper, grid; cfl=0.1)
 
     u0 = x -> @SVector[0.0, 0.0, 0.0]
-    x = SinFVM.cell_centers(grid)
+    x = VolumeFluxes.cell_centers(grid)
     initial = u0.(x)
 
-    SinFVM.set_current_state!(simulator, initial)
-    SinFVM.current_state(simulator).h[1:end, 1:end] = bottom_per_cell(bottom)
+    VolumeFluxes.set_current_state!(simulator, initial)
+    VolumeFluxes.current_state(simulator).h[1:end, 1:end] = bottom_per_cell(bottom)
     T = 1#24 * 60 * 60.0
-    callback_to_simulator = IntervalWriter(step=10.0, writer=(t, s) -> callback(terrain, SinFVM.name(backend), t, s))
+    callback_to_simulator = IntervalWriter(step=10.0, writer=(t, s) -> callback(terrain, VolumeFluxes.name(backend), t, s))
 
     total_water_writer = TotalWaterVolume(bottom_topography=bottom)
     total_water_writer(0.0, simulator)
     total_water_writer_interval_writer = IntervalWriter(step=10.0, writer=total_water_writer)
 
-    SinFVM.simulate_to_time(simulator, T; maximum_timestep=1.0, callback=[callback_to_simulator, total_water_writer_interval_writer])
+    VolumeFluxes.simulate_to_time(simulator, T; maximum_timestep=1.0, callback=[callback_to_simulator, total_water_writer_interval_writer])
 end

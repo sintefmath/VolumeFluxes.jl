@@ -18,10 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-using SinFVM
+using VolumeFluxes
 using Test
 
-@test SinFVM.minmod(1,2,3) == 1
-@test SinFVM.minmod(-1,-2,-3) == -1
-@test SinFVM.minmod(1,-2,3) == 0
-@test SinFVM.minmod.([1 -2 -3], [3 -5 2], [4 -3 4]) == [1 -2 0]
+@test VolumeFluxes.minmod(1,2,3) == 1
+@test VolumeFluxes.minmod(-1,-2,-3) == -1
+@test VolumeFluxes.minmod(1,-2,3) == 0
+@test VolumeFluxes.minmod.([1 -2 -3], [3 -5 2], [4 -3 4]) == [1 -2 0]

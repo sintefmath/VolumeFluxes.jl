@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-module SinFVM
+module VolumeFluxes
 using Logging
 direction(integer) = Val{integer}
 

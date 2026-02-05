@@ -18,19 +18,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-using SinFVM
+using VolumeFluxes
 using Test
 import CUDA
 using Polynomials
 using ProgressMeter
-struct SimpleSystem <: SinFVM.System
+struct SimpleSystem <: VolumeFluxes.System
     backend
     grid
     equation
 end
-SinFVM.create_volume(backend, grid, cs::SimpleSystem) = SinFVM.create_volume(backend, grid, cs.equation)
+VolumeFluxes.create_volume(backend, grid, cs::SimpleSystem) = VolumeFluxes.create_volume(backend, grid, cs.equation)
 
-function SinFVM.add_time_derivative!(output, system::SimpleSystem, state, t)
+function VolumeFluxes.add_time_derivative!(output, system::SimpleSystem, state, t)
     CUDA.@allowscalar output[2] += state[2]
 
     return [1.0]
@@ -38,9 +38,9 @@ end
 
 function run_without_simulator(dt, steppertype, backend)
     stepper = steppertype()
-    grid = SinFVM.CartesianGrid(1)
+    grid = VolumeFluxes.CartesianGrid(1)
     system = SimpleSystem(backend, grid, nothing)
-    buffers = [SinFVM.convert_to_backend(backend, ones(3)) for _ in 1:(SinFVM.number_of_substeps(stepper)+1)]
+    buffers = [VolumeFluxes.convert_to_backend(backend, ones(3)) for _ in 1:(VolumeFluxes.number_of_substeps(stepper)+1)]
 
     compute_timestep(wavespeed) = dt
 
@@ -48,8 +48,8 @@ function run_without_simulator(dt, steppertype, backend)
     t = 0.0
 
     while t < T
-        for substep in 1:SinFVM.number_of_substeps(stepper)
-            SinFVM.do_substep!(buffers[substep+1], stepper, system, buffers, dt, compute_timestep, substep, t)
+        for substep in 1:VolumeFluxes.number_of_substeps(stepper)
+            VolumeFluxes.do_substep!(buffers[substep+1], stepper, system, buffers, dt, compute_timestep, substep, t)
         end
         buffers[end], buffers[1] = buffers[1], buffers[end]
         t += dt
@@ -60,18 +60,18 @@ end
 
 function run_with_simulator(dt, steppertype, backend)
     stepper = steppertype()
-    grid = SinFVM.CartesianGrid(1, extent=[0 dt])
-    equation = SinFVM.Burgers()
+    grid = VolumeFluxes.CartesianGrid(1, extent=[0 dt])
+    equation = VolumeFluxes.Burgers()
     system = SimpleSystem(backend, grid, equation)
-    simulator = SinFVM.Simulator(backend, system, stepper, grid)
+    simulator = VolumeFluxes.Simulator(backend, system, stepper, grid)
     
     T = 1.0
     t = 0.0
 
-    SinFVM.set_current_state!(simulator, [1.0])
-    SinFVM.simulate_to_time(simulator, T, show_progress=false)
+    VolumeFluxes.set_current_state!(simulator, [1.0])
+    VolumeFluxes.simulate_to_time(simulator, T, show_progress=false)
 
-    return collect(SinFVM.current_interior_state(simulator))[1]
+    return collect(VolumeFluxes.current_interior_state(simulator))[1]
 end
 function test_timestepper(steppertype, backend, order, runfunction)
     dts = 1.0 ./( 2.0 .^ (6:15))
@@ -89,12 +89,12 @@ function test_timestepper(steppertype, backend, order, runfunction)
 end
 
 for backend in get_available_backends()
-    test_timestepper(SinFVM.ForwardEulerStepper, backend, 1.0, run_without_simulator)
-    test_timestepper(SinFVM.RungeKutta2, backend, 2.0, run_without_simulator)
+    test_timestepper(VolumeFluxes.ForwardEulerStepper, backend, 1.0, run_without_simulator)
+    test_timestepper(VolumeFluxes.RungeKutta2, backend, 2.0, run_without_simulator)
 end
 
 for backend in get_available_backends()
-    test_timestepper(SinFVM.ForwardEulerStepper, backend, 1.0, run_with_simulator)
-    test_timestepper(SinFVM.RungeKutta2, backend, 2.0, run_with_simulator)
+    test_timestepper(VolumeFluxes.ForwardEulerStepper, backend, 1.0, run_with_simulator)
+    test_timestepper(VolumeFluxes.RungeKutta2, backend, 2.0, run_with_simulator)
 
 end

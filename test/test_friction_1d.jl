@@ -22,29 +22,29 @@ using Test
 using StaticArrays
 
 
-using SinFVM
+using VolumeFluxes
 function run_simulation_friction1d(T, backend, equation, grid; elevate=0.0, source_terms = [])
 
     u0 = x -> @SVector[exp.(-(x - 0.5)^2 / 0.001) .+ 1.5 .+ elevate, 0.0 .* x]
     
-    reconstruction = SinFVM.LinearReconstruction(1.05)
-    numericalflux = SinFVM.CentralUpwind(equation)
-    timestepper = SinFVM.RungeKutta2()
-    friction = SinFVM.ImplicitFriction()
-    conserved_system = SinFVM.ConservedSystem(backend, reconstruction, numericalflux, equation, grid, source_terms, friction)
-    simulator = SinFVM.Simulator(backend, conserved_system, timestepper, grid, cfl=0.2)
+    reconstruction = VolumeFluxes.LinearReconstruction(1.05)
+    numericalflux = VolumeFluxes.CentralUpwind(equation)
+    timestepper = VolumeFluxes.RungeKutta2()
+    friction = VolumeFluxes.ImplicitFriction()
+    conserved_system = VolumeFluxes.ConservedSystem(backend, reconstruction, numericalflux, equation, grid, source_terms, friction)
+    simulator = VolumeFluxes.Simulator(backend, conserved_system, timestepper, grid, cfl=0.2)
     
-    x = SinFVM.cell_centers(grid)
+    x = VolumeFluxes.cell_centers(grid)
     initial = u0.(x)
-    SinFVM.set_current_state!(simulator, initial)
+    VolumeFluxes.set_current_state!(simulator, initial)
     
-    SinFVM.simulate_to_time(simulator, T)
+    VolumeFluxes.simulate_to_time(simulator, T)
     
-    return SinFVM.current_interior_state(simulator)
+    return VolumeFluxes.current_interior_state(simulator)
 end
 
 function plot_sols_friction1d(ref_sol, sol, grid, test_name)
-    x = SinFVM.cell_centers(grid)
+    x = VolumeFluxes.cell_centers(grid)
     f = Figure(size=(1600, 600), fontsize=24)
     ax = Axis(
         f[1, 1],
@@ -59,28 +59,28 @@ function plot_sols_friction1d(ref_sol, sol, grid, test_name)
     display(f)
 end
 
-function get_test_name_friction1d(backend, eq::SinFVM.Equation)
+function get_test_name_friction1d(backend, eq::VolumeFluxes.Equation)
     backend_name = split(match(r"{(.*?)}", string(typeof(backend)))[1], '.')[end]
     eq_name = match(r"\.(.*?){", string(typeof(eq)))[1]
     return eq_name * " " * backend_name
 end
-function get_test_name_friction1d(backend, B::SinFVM.AbstractBottomTopography)
+function get_test_name_friction1d(backend, B::VolumeFluxes.AbstractBottomTopography)
     backend_name = split(match(r"{(.*?)}", string(typeof(backend)))[1], '.')[end]
     B_name = match(r"\.(.*?){", string(typeof(B)))[1]
     return B_name * " " * backend_name
 end
 
-for backend in SinFVM.get_available_backends()
+for backend in VolumeFluxes.get_available_backends()
     nx = 1024  
-    grid = SinFVM.CartesianGrid(nx; gc=2)
+    grid = VolumeFluxes.CartesianGrid(nx; gc=2)
     T = 0.05
 
     ref_backend = make_cpu_backend()
-    ref_eq = SinFVM.ShallowWaterEquations1DPure()
+    ref_eq = VolumeFluxes.ShallowWaterEquations1DPure()
     ref_sol = run_simulation_friction1d(T, ref_backend, ref_eq, grid)
 
-    for eq in [SinFVM.ShallowWaterEquations1DPure(), 
-               SinFVM.ShallowWaterEquations1D()]
+    for eq in [VolumeFluxes.ShallowWaterEquations1DPure(), 
+               VolumeFluxes.ShallowWaterEquations1D()]
         test_name = get_test_name_friction1d(backend, eq)
         @testset "$(test_name)" begin
             sol = run_simulation_friction1d(T, backend, eq, grid)
@@ -92,15 +92,15 @@ for backend in SinFVM.get_available_backends()
         end
     end
 
-    if backend isa SinFVM.CPUBackend
+    if backend isa VolumeFluxes.CPUBackend
         # Test the same setup but with +1 for both B and w_initial
         B_const = 1.0
-        B_field = Float64[1.0 for x in SinFVM.cell_faces(grid, interior=false)]
-        source_terms = [SinFVM.SourceTermBottom()]
-        for B in [SinFVM.ConstantBottomTopography(B_const),
-                SinFVM.BottomTopography1D(B_field, backend, grid)]
+        B_field = Float64[1.0 for x in VolumeFluxes.cell_faces(grid, interior=false)]
+        source_terms = [VolumeFluxes.SourceTermBottom()]
+        for B in [VolumeFluxes.ConstantBottomTopography(B_const),
+                VolumeFluxes.BottomTopography1D(B_field, backend, grid)]
             test_name = get_test_name_friction1d(backend, B)
-            eq = SinFVM.ShallowWaterEquations1D(B)
+            eq = VolumeFluxes.ShallowWaterEquations1D(B)
             @testset "$(test_name)" begin
                 sol = run_simulation_friction1d(T, backend, eq, grid; elevate=1.0, source_terms=source_terms)
                 #@show test_name

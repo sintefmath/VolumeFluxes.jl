@@ -18,44 +18,44 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-using SinFVM
+using VolumeFluxes
 using CUDA
 using Test
 
 for backend in get_available_backends()
     nx = 64
     ny = 32
-    grid = SinFVM.CartesianGrid(nx, ny)
-    @test SinFVM.compute_dx(grid, XDIR) == 1.0 / nx
-    @test SinFVM.compute_dx(grid, YDIR) == 1.0 / ny
+    grid = VolumeFluxes.CartesianGrid(nx, ny)
+    @test VolumeFluxes.compute_dx(grid, XDIR) == 1.0 / nx
+    @test VolumeFluxes.compute_dx(grid, YDIR) == 1.0 / ny
 
-    @test SinFVM.size(grid) == (nx + 2, ny + 2)
-    @test SinFVM.inner_cells(grid, XDIR) == (nx, ny)
-    @test SinFVM.inner_cells(grid, YDIR) == (nx, ny)
-    @test SinFVM.inner_cells(grid, XDIR, 0) == (nx + 2, ny)
-    @test SinFVM.inner_cells(grid, YDIR, 0) == (nx, ny + 2)
+    @test VolumeFluxes.size(grid) == (nx + 2, ny + 2)
+    @test VolumeFluxes.inner_cells(grid, XDIR) == (nx, ny)
+    @test VolumeFluxes.inner_cells(grid, YDIR) == (nx, ny)
+    @test VolumeFluxes.inner_cells(grid, XDIR, 0) == (nx + 2, ny)
+    @test VolumeFluxes.inner_cells(grid, YDIR, 0) == (nx, ny + 2)
 
-    @test SinFVM.middle_cell(grid, CartesianIndex(nx, ny), XDIR) == CartesianIndex(nx + 1, ny + 1)
-    @test SinFVM.middle_cell(grid, CartesianIndex(nx, ny), YDIR) == CartesianIndex(nx + 1, ny + 1)
+    @test VolumeFluxes.middle_cell(grid, CartesianIndex(nx, ny), XDIR) == CartesianIndex(nx + 1, ny + 1)
+    @test VolumeFluxes.middle_cell(grid, CartesianIndex(nx, ny), YDIR) == CartesianIndex(nx + 1, ny + 1)
     for j in 1:ny
         for i in 1:nx
-            @test SinFVM.middle_cell(grid, CartesianIndex(i, j), XDIR) == CartesianIndex(i + 1, j + 1)
-            @test SinFVM.middle_cell(grid, CartesianIndex(i, j), YDIR) == CartesianIndex(i + 1, j + 1)
+            @test VolumeFluxes.middle_cell(grid, CartesianIndex(i, j), XDIR) == CartesianIndex(i + 1, j + 1)
+            @test VolumeFluxes.middle_cell(grid, CartesianIndex(i, j), YDIR) == CartesianIndex(i + 1, j + 1)
 
-            @test SinFVM.left_cell(grid, CartesianIndex(i, j), XDIR) == CartesianIndex(i, j + 1)
-            @test SinFVM.left_cell(grid, CartesianIndex(i, j), YDIR) == CartesianIndex(i + 1, j)
+            @test VolumeFluxes.left_cell(grid, CartesianIndex(i, j), XDIR) == CartesianIndex(i, j + 1)
+            @test VolumeFluxes.left_cell(grid, CartesianIndex(i, j), YDIR) == CartesianIndex(i + 1, j)
 
-            @test SinFVM.right_cell(grid, CartesianIndex(i, j), XDIR) == CartesianIndex(i + 2, j + 1)
-            @test SinFVM.right_cell(grid, CartesianIndex(i, j), YDIR) == CartesianIndex(i + 1, j + 2)
+            @test VolumeFluxes.right_cell(grid, CartesianIndex(i, j), XDIR) == CartesianIndex(i + 2, j + 1)
+            @test VolumeFluxes.right_cell(grid, CartesianIndex(i, j), YDIR) == CartesianIndex(i + 1, j + 2)
         end
     end
 
     # XDIR  
-    output_left = SinFVM.convert_to_backend(backend, -42 * ones(Int64, nx + 2, ny + 2, 2))
-    output_middle = SinFVM.convert_to_backend(backend, -42 * ones(Int64, nx + 2, ny + 2, 2))
-    output_right = SinFVM.convert_to_backend(backend, -42 * ones(Int64, nx + 2, ny + 2, 2))
+    output_left = VolumeFluxes.convert_to_backend(backend, -42 * ones(Int64, nx + 2, ny + 2, 2))
+    output_middle = VolumeFluxes.convert_to_backend(backend, -42 * ones(Int64, nx + 2, ny + 2, 2))
+    output_right = VolumeFluxes.convert_to_backend(backend, -42 * ones(Int64, nx + 2, ny + 2, 2))
 
-    SinFVM.@fvmloop SinFVM.for_each_inner_cell(backend, grid, XDIR) do left, middle, right
+    VolumeFluxes.@fvmloop VolumeFluxes.for_each_inner_cell(backend, grid, XDIR) do left, middle, right
         output_left[left, 1] = left[1]
         output_left[left, 2] = left[2]
 
@@ -95,11 +95,11 @@ for backend in get_available_backends()
 
 
     # YDIR  
-    output_left = SinFVM.convert_to_backend(backend, -42 * ones(Int64, nx + 2, ny + 2, 2))
-    output_middle = SinFVM.convert_to_backend(backend, -42 * ones(Int64, nx + 2, ny + 2, 2))
-    output_right = SinFVM.convert_to_backend(backend, -42 * ones(Int64, nx + 2, ny + 2, 2))
+    output_left = VolumeFluxes.convert_to_backend(backend, -42 * ones(Int64, nx + 2, ny + 2, 2))
+    output_middle = VolumeFluxes.convert_to_backend(backend, -42 * ones(Int64, nx + 2, ny + 2, 2))
+    output_right = VolumeFluxes.convert_to_backend(backend, -42 * ones(Int64, nx + 2, ny + 2, 2))
 
-    SinFVM.@fvmloop SinFVM.for_each_inner_cell(backend, grid, YDIR) do left, middle, right
+    VolumeFluxes.@fvmloop VolumeFluxes.for_each_inner_cell(backend, grid, YDIR) do left, middle, right
         output_left[left, 1] = left[1]
         output_left[left, 2] = left[2]
 

@@ -18,20 +18,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-using SinFVM
+using VolumeFluxes
 using CUDA
 using Test
 
 for backend in get_available_backends()
     nx = 10
-    grid = SinFVM.CartesianGrid(nx)
+    grid = VolumeFluxes.CartesianGrid(nx)
     backend = make_cpu_backend()
 
     leftarrays = 1000 * ones(nx + 2)
     middlearrays = 1000 * ones(nx + 2)
     rightarrays = 1000 * ones(nx + 2)
 
-    SinFVM.@fvmloop SinFVM.for_each_inner_cell(backend, grid, XDIR) do ileft, imiddle, iright
+    VolumeFluxes.@fvmloop VolumeFluxes.for_each_inner_cell(backend, grid, XDIR) do ileft, imiddle, iright
         leftarrays[imiddle] = ileft
         middlearrays[imiddle] = imiddle
         rightarrays[imiddle] = iright
@@ -58,7 +58,7 @@ for backend in get_available_backends()
     middlearrays = 1000 * ones(nx + 2)
     rightarrays = 1000 * ones(nx + 2)
 
-    SinFVM.@fvmloop SinFVM.for_each_inner_cell(backend, grid, XDIR; ghostcells=3) do ileft, imiddle, iright
+    VolumeFluxes.@fvmloop VolumeFluxes.for_each_inner_cell(backend, grid, XDIR; ghostcells=3) do ileft, imiddle, iright
         leftarrays[imiddle] = ileft
         middlearrays[imiddle] = imiddle
         rightarrays[imiddle] = iright

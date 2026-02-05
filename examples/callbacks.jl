@@ -20,7 +20,7 @@
 
 # # Using the callback functionality
 #
-# This example demonstrates how to use the callback functionality in the Simulator object of the SinFVM.jl package.
+# This example demonstrates how to use the callback functionality in the Simulator object of the VolumeFluxes.jl package.
 #
 # ## Why use callbacks?
 # Consider the case where you want to monitor the solution at a particular point in the time. You could do this by saving the solution at every time step and then extracting the solution at that point. However, this is inefficient and can lead to large memory usage. Instead, you can use the callback functionality to monitor the solution at that point without saving the solution at every time step.
@@ -34,7 +34,7 @@
 # We create a simple simulation of the Burgers' equation and use a callback to create an animation of the solution.
 #
 # First we setup the simulation:
-using SinFVM
+using VolumeFluxes
 using CairoMakie
 using StaticArrays
 
@@ -50,11 +50,11 @@ simulator = Simulator(backend, system, timestepper, grid)
 
 # Define the initial condition
 u0 = x -> @SVector[sin(2 * pi * x)]
-x = SinFVM.cell_centers(grid)
+x = VolumeFluxes.cell_centers(grid)
 initial = u0.(x)
 
 # Set the initial data created above
-SinFVM.set_current_state!(simulator, initial)
+VolumeFluxes.set_current_state!(simulator, initial)
 
 # ## Define the callback function
 # We will use the plotting functionality of Makie.jl. It is recommended to familiarize yourself with the [animation capabilities of the Makie.jl package](https://docs.makie.org/dev/explanations/animation) before proceeding.
@@ -62,13 +62,13 @@ SinFVM.set_current_state!(simulator, initial)
 # In the callback function, we will push back the data to an Vector we create. 
 #
 # Create the Vector to store the data. Notice that we are accessing the `.u` field of the current state of the simulator, this will effectively access the conserved variable of the Burgers equation. We are using the `collect` function to be both CPU and GPU compatible.
-animation_data = [collect(SinFVM.current_interior_state(simulator).u)]
+animation_data = [collect(VolumeFluxes.current_interior_state(simulator).u)]
 
 
 # Define the callback function
 function callback(time::Real, simulator::Simulator)
     #!jl Update the data
-    push!(animation_data, collect(SinFVM.current_interior_state(simulator).u))
+    push!(animation_data, collect(VolumeFluxes.current_interior_state(simulator).u))
 end
 
 # We will wrap the callback function in the IntervalWriter callback, which will call the callback function at regular intervals, in this case every 0.1 simulation time seconds.

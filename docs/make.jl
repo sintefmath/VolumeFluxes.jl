@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-using Documenter, Literate, SinFVM, Parameters
+using Documenter, Literate, VolumeFluxes, Parameters
 
 push!(LOAD_PATH, "../src/")
 push!(LOAD_PATH, "../examples/")
@@ -42,8 +42,8 @@ Literate.markdown("examples/optimization.jl", "docs/src/"; execute=false, prepro
 Literate.markdown("examples/shallow_water_1d.jl", "docs/src/"; execute=false, preprocess=process_includes)
 Literate.markdown("examples/callbacks.jl", "docs/src/"; execute=false, preprocess=process_includes)
 
-makedocs(modules = [SinFVM], 
-    sitename="SinFVM.jl",
+makedocs(modules = [VolumeFluxes], 
+    sitename="VolumeFluxes.jl",
     draft=false,
     pages = [
         "Introduction" => "index.md",

@@ -26,21 +26,21 @@ using Test
 import CUDA
 using ForwardDiff
 import KernelAbstractions
-using SinFVM
+using VolumeFluxes
 import ForwardDiff
 
 function run_swe_2d_ad_simulation(height_and_position)
     # Here we say that we want to have one derivative (height_of_wall)
     ADType = eltype(height_and_position)
 
-    backend = SinFVM.KernelAbstractionBackend(KernelAbstractions.get_backend(ones(3)); realtype=ADType)
+    backend = VolumeFluxes.KernelAbstractionBackend(KernelAbstractions.get_backend(ones(3)); realtype=ADType)
 
-    backend_name = SinFVM.name(backend)
+    backend_name = VolumeFluxes.name(backend)
     nx = 256
     ny = 32
-    grid = SinFVM.CartesianGrid(nx, ny; gc=2)
-    dx = SinFVM.compute_dx(grid)
-    dy = SinFVM.compute_dy(grid)
+    grid = VolumeFluxes.CartesianGrid(nx, ny; gc=2)
+    dx = VolumeFluxes.compute_dx(grid)
+    dy = VolumeFluxes.compute_dy(grid)
     width_of_wall = 4
     length_of_wall = 40
 
@@ -66,24 +66,24 @@ function run_swe_2d_ad_simulation(height_and_position)
         end
     end
 
-    bottom_topography = SinFVM.BottomTopography2D(bottom_topography_array, backend, grid)
-    bottom_source = SinFVM.SourceTermBottom()
-    equation = SinFVM.ShallowWaterEquations(bottom_topography)
-    reconstruction = SinFVM.LinearReconstruction()
-    numericalflux = SinFVM.CentralUpwind(equation)
+    bottom_topography = VolumeFluxes.BottomTopography2D(bottom_topography_array, backend, grid)
+    bottom_source = VolumeFluxes.SourceTermBottom()
+    equation = VolumeFluxes.ShallowWaterEquations(bottom_topography)
+    reconstruction = VolumeFluxes.LinearReconstruction()
+    numericalflux = VolumeFluxes.CentralUpwind(equation)
 
     conserved_system =
-        SinFVM.ConservedSystem(backend, reconstruction, numericalflux, equation, grid, [bottom_source])
-    timestepper = SinFVM.ForwardEulerStepper()
-    simulator = SinFVM.Simulator(backend, conserved_system, timestepper, grid)
+        VolumeFluxes.ConservedSystem(backend, reconstruction, numericalflux, equation, grid, [bottom_source])
+    timestepper = VolumeFluxes.ForwardEulerStepper()
+    simulator = VolumeFluxes.Simulator(backend, conserved_system, timestepper, grid)
     T = 0.05
 
     # Two ways for setting initial conditions:
     # 1) Directly
-    x = SinFVM.cell_centers(grid)
+    x = VolumeFluxes.cell_centers(grid)
     u0 = x -> @SVector[exp.(-(norm(x .- 0.5)^2 / 0.01)) .+ 1.5, 0.0, 0.0]
     initial = u0.(x)
-    SinFVM.set_current_state!(simulator, initial)
+    VolumeFluxes.set_current_state!(simulator, initial)
 
     f = Figure(size=(1600, 1200), fontsize=24)
     names = [L"h", L"hu", L"hv"]
@@ -93,10 +93,10 @@ $(names[i])") for i in 1:3] for j in 1:2]
 
 
     # IMPORTANT: To get the value, we need to do ForwardDiff.value
-    current_simulator_state = ForwardDiff.value.(collect(SinFVM.current_state(simulator)))
+    current_simulator_state = ForwardDiff.value.(collect(VolumeFluxes.current_state(simulator)))
     @test !any(isnan.(current_simulator_state))
 
-    initial_state = SinFVM.current_interior_state(simulator)
+    initial_state = VolumeFluxes.current_interior_state(simulator)
     hm = heatmap!(axes[1][1], ForwardDiff.value.(collect(initial_state.h)))
     Colorbar(f[1, 2], hm)
     hm = heatmap!(axes[1][2], ForwardDiff.value.(collect(initial_state.hu)))
@@ -105,10 +105,10 @@ $(names[i])") for i in 1:3] for j in 1:2]
     Colorbar(f[3, 2], hm)
 
     t = 0.0
-    @time SinFVM.simulate_to_time(simulator, T)
-    @test SinFVM.current_time(simulator) == T
+    @time VolumeFluxes.simulate_to_time(simulator, T)
+    @test VolumeFluxes.current_time(simulator) == T
 
-    result = SinFVM.current_interior_state(simulator)
+    result = VolumeFluxes.current_interior_state(simulator)
     h = ForwardDiff.value.(collect(result.h))
     hu = ForwardDiff.value.(collect(result.hu))
     hv = ForwardDiff.value.(collect(result.hv))

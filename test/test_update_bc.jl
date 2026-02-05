@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-using SinFVM
+using VolumeFluxes
 using CUDA
 using Test
 using StaticArrays
@@ -26,13 +26,13 @@ using StaticArrays
 
 for backend in [make_cpu_backend()] #TODO: Make test for CUDA
     nx = 10
-    grid = SinFVM.CartesianGrid(nx)
+    grid = VolumeFluxes.CartesianGrid(nx)
     backend = make_cpu_backend()
-    equation = SinFVM.Burgers()
+    equation = VolumeFluxes.Burgers()
 
     x = collect(1:(nx+2))
 
-    SinFVM.update_bc!(backend, grid, equation, x)
+    VolumeFluxes.update_bc!(backend, grid, equation, x)
     @test x[1] == 11
     @test x[end] == 2
     @test x[2:end-1] == collect(2:11)
@@ -40,7 +40,7 @@ for backend in [make_cpu_backend()] #TODO: Make test for CUDA
     xvec = [SVector{2,Float64}(i, 2 * i) for i in 1:(nx+2)]
     xvecorig = [SVector{2,Float64}(i, 2 * i) for i in 1:(nx+2)]
 
-    SinFVM.update_bc!(backend, grid, equation, xvec)
+    VolumeFluxes.update_bc!(backend, grid, equation, xvec)
 
     @test xvec[1] == xvec[end-1]
     @test xvec[end] == xvec[2]
@@ -48,14 +48,14 @@ for backend in [make_cpu_backend()] #TODO: Make test for CUDA
 
     ## Test wall boundary condition for shallow water equations
 
-    wall_grid = SinFVM.CartesianGrid(nx, gc=2, boundary=SinFVM.WallBC())
-    swe = SinFVM.ShallowWaterEquations1D()
+    wall_grid = VolumeFluxes.CartesianGrid(nx, gc=2, boundary=VolumeFluxes.WallBC())
+    swe = VolumeFluxes.ShallowWaterEquations1D()
 
     x = collect(1:(nx+4))
     u = [SVector{2,Float64}(x, x * 10) for x in 1:(nx+4)]
     uorig = [SVector{2,Float64}(x, x * 10) for x in 1:(nx+4)]
 
-    SinFVM.update_bc!(backend, wall_grid, swe, u)
+    VolumeFluxes.update_bc!(backend, wall_grid, swe, u)
 
     @test u[3:end-2] == uorig[3:end-2]
     @test u[2][1] == u[3][1]
@@ -71,15 +71,15 @@ for backend in [make_cpu_backend()] #TODO: Make test for CUDA
     ## Test wall boundary condition for shallow water equations 2D
 
     ny = 5
-    wall_grid_2d = SinFVM.CartesianGrid(nx, ny, gc=2, boundary=SinFVM.WallBC())
-    swe_2d = SinFVM.ShallowWaterEquationsPure()
+    wall_grid_2d = VolumeFluxes.CartesianGrid(nx, ny, gc=2, boundary=VolumeFluxes.WallBC())
+    swe_2d = VolumeFluxes.ShallowWaterEquationsPure()
     u0 = x -> @SVector[x[1], (x[1] + x[2]) * 10, x[1] * (x[2] - 5)]
 
-    x = SinFVM.cell_centers(wall_grid_2d; interior=false)
+    x = VolumeFluxes.cell_centers(wall_grid_2d; interior=false)
     u = u0.(x)
     uorig = u0.(x)
 
-    SinFVM.update_bc!(backend, wall_grid_2d, swe_2d, u)
+    VolumeFluxes.update_bc!(backend, wall_grid_2d, swe_2d, u)
 
     @test u[3:end-2, 3:end-2] == uorig[3:end-2, 3:end-2]
     # h

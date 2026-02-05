@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-using SinFVM
+using VolumeFluxes
 using Test
 using StaticArrays
 using CairoMakie
@@ -27,34 +27,34 @@ using LinearAlgebra
 
 function test_lake_at_rest(backend, grid, B_data, w0, t=0.001; plot=true)
 
-    B = SinFVM.BottomTopography2D(B_data, backend, grid)
-    eq = SinFVM.ShallowWaterEquations(B)
-    rec = SinFVM.LinearReconstruction(2)
-    flux = SinFVM.CentralUpwind(eq)
-    bst = SinFVM.SourceTermBottom()
-    conserved_system = SinFVM.ConservedSystem(backend, rec, flux, eq, grid, bst)
+    B = VolumeFluxes.BottomTopography2D(B_data, backend, grid)
+    eq = VolumeFluxes.ShallowWaterEquations(B)
+    rec = VolumeFluxes.LinearReconstruction(2)
+    flux = VolumeFluxes.CentralUpwind(eq)
+    bst = VolumeFluxes.SourceTermBottom()
+    conserved_system = VolumeFluxes.ConservedSystem(backend, rec, flux, eq, grid, bst)
     
-    #balance_system = SinFVM.BalanceSystem(conserved_system, bst)
+    #balance_system = VolumeFluxes.BalanceSystem(conserved_system, bst)
     
     
-    timestepper = SinFVM.ForwardEulerStepper()
-    simulator = SinFVM.Simulator(backend, conserved_system, timestepper, grid, cfl=0.2)
+    timestepper = VolumeFluxes.ForwardEulerStepper()
+    simulator = VolumeFluxes.Simulator(backend, conserved_system, timestepper, grid, cfl=0.2)
     
-    x = SinFVM.cell_centers(grid)
-    xf = SinFVM.cell_faces(grid)
+    x = VolumeFluxes.cell_centers(grid)
+    xf = VolumeFluxes.cell_faces(grid)
     u0 = x -> @SVector[w0, 0.0, 0.0]
     initial = u0.(x)
 
-    SinFVM.set_current_state!(simulator, initial)
+    VolumeFluxes.set_current_state!(simulator, initial)
     
-    SinFVM.simulate_to_time(simulator, t)
+    VolumeFluxes.simulate_to_time(simulator, t)
 
     
-    # initial_state = SinFVM.current_interior_state(simulator)
+    # initial_state = VolumeFluxes.current_interior_state(simulator)
     # lines!(ax, x, collect(initial_state.h), label=L"h_0(x)")
     # lines!(ax2, x, collect(initial_state.hu), label=L"hu_0(x)")
 
-    state = SinFVM.current_interior_state(simulator)
+    state = VolumeFluxes.current_interior_state(simulator)
     w =  collect(state.h)
     hu = collect(state.hu)
     hv = collect(state.hv)
@@ -99,30 +99,30 @@ terrain",
 end
 
 
-for backend in SinFVM.get_available_backends()
+for backend in VolumeFluxes.get_available_backends()
     nx = 64
     ny = 64
-    grid = SinFVM.CartesianGrid(nx, ny; gc=2, boundary=SinFVM.WallBC(), extent=[0.0  10.0; 0.0 10.0], )
+    grid = VolumeFluxes.CartesianGrid(nx, ny; gc=2, boundary=VolumeFluxes.WallBC(), extent=[0.0  10.0; 0.0 10.0], )
     x0 = 5.0
     y0 = 5.0
-    B = [x[1] < x0 && x[2] < y0 ? 0.45 : 0.55 for x in SinFVM.cell_faces(grid, interior=false)]
+    B = [x[1] < x0 && x[2] < y0 ? 0.45 : 0.55 for x in VolumeFluxes.cell_faces(grid, interior=false)]
 
     nx_bumpy = 124
     ny_bumpy = 124
-    grid_bumpy = SinFVM.CartesianGrid(nx_bumpy, ny_bumpy; gc=2, boundary=SinFVM.WallBC(), extent=[-2*pi  2*pi; -2*pi 2*pi], )
-    B_bumpy = [(cos(x[1] + x[2])-0.5 - 1.5*(norm(x) < 1.0)) for x in SinFVM.cell_faces(grid_bumpy, interior=false)]
+    grid_bumpy = VolumeFluxes.CartesianGrid(nx_bumpy, ny_bumpy; gc=2, boundary=VolumeFluxes.WallBC(), extent=[-2*pi  2*pi; -2*pi 2*pi], )
+    B_bumpy = [(cos(x[1] + x[2])-0.5 - 1.5*(norm(x) < 1.0)) for x in VolumeFluxes.cell_faces(grid_bumpy, interior=false)]
 
-   @testset "lake_at_rest_$(SinFVM.name(backend))" begin
+   @testset "lake_at_rest_$(VolumeFluxes.name(backend))" begin
 
         test_lake_at_rest(backend, grid, B, 0.7, 0.01, plot=false)
         test_lake_at_rest(backend, grid_bumpy, B_bumpy, 0.7, 0.01, plot=false)
    end
 end
 
-# bst = SinFVM.SourceTermBottom()
-# rain = SinFVM.SourceTermRain(1.0)
-# infl = SinFVM.SourceTermInfiltration(-1.0)
+# bst = VolumeFluxes.SourceTermBottom()
+# rain = VolumeFluxes.SourceTermRain(1.0)
+# infl = VolumeFluxes.SourceTermInfiltration(-1.0)
 
-# v_st::Vector{SinFVM.SourceTerm} = [bst, rain, infl]
+# v_st::Vector{VolumeFluxes.SourceTerm} = [bst, rain, infl]
 # @show(v_st)
 #@show maximum(B)  

@@ -133,7 +133,7 @@ macro fvmloop(code_snippet)
     # TODO: Review this. Currently we need it for the minmod function in LinearReconstruction for some reason...
     all_functions = []
     for variable in all_variables_referenced
-        if isdefined(SinFVM, variable) &&  isa(getfield(SinFVM, variable), Function)
+        if isdefined(VolumeFluxes, variable) &&  isa(getfield(VolumeFluxes, variable), Function)
             push!(all_functions, variable)
         end
     end
@@ -142,8 +142,8 @@ macro fvmloop(code_snippet)
     end
    
     # TODO: Delete all module names
-    # TODO: Use current module name insteadof referencing SinFVM
-    delete!(all_variables_referenced, :SinFVM)
+    # TODO: Use current module name insteadof referencing VolumeFluxes
+    delete!(all_variables_referenced, :VolumeFluxes)
     
     new_parameter_names = []
     for variable_referred in all_variables_referenced

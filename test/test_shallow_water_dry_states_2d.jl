@@ -27,35 +27,35 @@ using Test
 module Correct
 include("fasit.jl")
 end
-using SinFVM
+using VolumeFluxes
 function run_swe_2d_pure_simulation(backend)
 
-    backend_name = SinFVM.name(backend)
+    backend_name = VolumeFluxes.name(backend)
     nx = 64
     ny = 64
-    grid = SinFVM.CartesianGrid(nx, ny; gc=2)
+    grid = VolumeFluxes.CartesianGrid(nx, ny; gc=2)
     
-    equation = SinFVM.ShallowWaterEquations()
-    reconstruction = SinFVM.LinearReconstruction()
-    numericalflux = SinFVM.CentralUpwind(equation)
+    equation = VolumeFluxes.ShallowWaterEquations()
+    reconstruction = VolumeFluxes.LinearReconstruction()
+    numericalflux = VolumeFluxes.CentralUpwind(equation)
 
     conserved_system =
-        SinFVM.ConservedSystem(backend, reconstruction, numericalflux, equation, grid)
-    timestepper = SinFVM.RungeKutta2()
-    simulator = SinFVM.Simulator(backend, conserved_system, timestepper, grid)
+        VolumeFluxes.ConservedSystem(backend, reconstruction, numericalflux, equation, grid)
+    timestepper = VolumeFluxes.RungeKutta2()
+    simulator = VolumeFluxes.Simulator(backend, conserved_system, timestepper, grid)
     
     # Two ways for setting initial conditions:
     # 1) Directly
-    x = SinFVM.cell_centers(grid)
+    x = VolumeFluxes.cell_centers(grid)
     #u0 = x -> @SVector[exp.(-(norm(x .- 0.5)^2 / 0.01)) .+ 1.5, 0.0, 0.0]
     u0 = x -> @SVector[1 - sign((norm(x .- 0.5)^2 - 0.01)), 0.0, 0.0]
     initial = u0.(x)
-    SinFVM.set_current_state!(simulator, initial)
+    VolumeFluxes.set_current_state!(simulator, initial)
     
     # 2) Via volumes:
-    # init_volume = SinFVM.Volume(backend, equation, grid)
-    # CUDA.@allowscalar SinFVM.InteriorVolume(init_volume)[:, :] = [SVector{3, Float64}(exp.(-(norm(x .- 0.5)^2 / 0.01)) .+ 1.5, 0.0, 0.0) for x in x]
-    # SinFVM.set_current_state!(simulator, init_volume)
+    # init_volume = VolumeFluxes.Volume(backend, equation, grid)
+    # CUDA.@allowscalar VolumeFluxes.InteriorVolume(init_volume)[:, :] = [SVector{3, Float64}(exp.(-(norm(x .- 0.5)^2 / 0.01)) .+ 1.5, 0.0, 0.0) for x in x]
+    # VolumeFluxes.set_current_state!(simulator, init_volume)
 
     T = 0.05
 
@@ -66,10 +66,10 @@ function run_swe_2d_pure_simulation(backend)
 $(names[i])") for i in 1:3 ] for j in 1:2]
     
     
-    current_simulator_state = collect(SinFVM.current_state(simulator))
+    current_simulator_state = collect(VolumeFluxes.current_state(simulator))
     @test !any(isnan.(current_simulator_state))
     
-    initial_state = SinFVM.current_interior_state(simulator)
+    initial_state = VolumeFluxes.current_interior_state(simulator)
     hm = heatmap!(axes[1][1], collect(initial_state.h))
     Colorbar(f[1, 2], hm)
     hm = heatmap!(axes[1][2], collect(initial_state.hu))
@@ -77,10 +77,10 @@ $(names[i])") for i in 1:3 ] for j in 1:2]
     hm = heatmap!(axes[1][3], collect(initial_state.hv))
     Colorbar(f[3, 2], hm)
     display(f)
-    @time SinFVM.simulate_to_time(simulator, T)
-    @test SinFVM.current_time(simulator) == T
+    @time VolumeFluxes.simulate_to_time(simulator, T)
+    @test VolumeFluxes.current_time(simulator) == T
     
-    result = SinFVM.current_interior_state(simulator)
+    result = VolumeFluxes.current_interior_state(simulator)
     h = collect(result.h)
     hu = collect(result.hu)
     hv = collect(result.hv)
@@ -116,7 +116,7 @@ $(names[i])") for i in 1:3 ] for j in 1:2]
     @test maximum(hv[:, ylower] + hv[:, yupper]) ≈ 0 atol=tolerance
 end
 
-# run_swe_2d_pure_simulation(SinFVM.make_cuda_backend())
+# run_swe_2d_pure_simulation(VolumeFluxes.make_cuda_backend())
 
 for backend in get_available_backends()
     run_swe_2d_pure_simulation(backend)

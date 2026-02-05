@@ -26,7 +26,7 @@ using StaticArrays
 module Correct
 include("fasit.jl")
 end
-using SinFVM
+using VolumeFluxes
 using Parameters
 
 
@@ -39,19 +39,19 @@ function (counter::CountTimesteps)(t, sim)
 end
 function run_simulation(nx; backend=make_cuda_backend())
     u0 = x -> sin.(2π * x)
-    grid = SinFVM.CartesianGrid(nx)
+    grid = VolumeFluxes.CartesianGrid(nx)
 
-    equation = SinFVM.Burgers()
-    reconstruction = SinFVM.NoReconstruction()
-    numericalflux = SinFVM.Godunov(equation)
-    conserved_system = SinFVM.ConservedSystem(backend, reconstruction, numericalflux, equation, grid)
-    timestepper = SinFVM.ForwardEulerStepper()
+    equation = VolumeFluxes.Burgers()
+    reconstruction = VolumeFluxes.NoReconstruction()
+    numericalflux = VolumeFluxes.Godunov(equation)
+    conserved_system = VolumeFluxes.ConservedSystem(backend, reconstruction, numericalflux, equation, grid)
+    timestepper = VolumeFluxes.ForwardEulerStepper()
 
-    x = SinFVM.cell_centers(grid)
+    x = VolumeFluxes.cell_centers(grid)
     initial = collect(map(z -> SVector{1,Float64}([z]), u0(x)))
-    simulator = SinFVM.Simulator(backend, conserved_system, timestepper, grid)
+    simulator = VolumeFluxes.Simulator(backend, conserved_system, timestepper, grid)
 
-    SinFVM.set_current_state!(simulator, initial)
+    VolumeFluxes.set_current_state!(simulator, initial)
 
     t = 0.0
 
@@ -61,15 +61,15 @@ function run_simulation(nx; backend=make_cuda_backend())
     if nx > time_scale_threshold
         T = (Float64(time_scale_threshold) / Float64(nx)) * T
     end
-    # plot(x, first.(SinFVM.current_interior_state(simulator)))
+    # plot(x, first.(VolumeFluxes.current_interior_state(simulator)))
     if nx <= 64 * 1024
-        println("Running SinFVM twice")
-        @time SinFVM.simulate_to_time(simulator, T)
+        println("Running VolumeFluxes twice")
+        @time VolumeFluxes.simulate_to_time(simulator, T)
     end
-    SinFVM.set_current_state!(simulator, initial)
+    VolumeFluxes.set_current_state!(simulator, initial)
     timestep_counter = CountTimesteps()
-    result_sinswe = @timed SinFVM.simulate_to_time(simulator, T, callback=timestep_counter)
-    plot!(x, first.(collect(SinFVM.current_interior_state(simulator))))
+    result_sinswe = @timed VolumeFluxes.simulate_to_time(simulator, T, callback=timestep_counter)
+    plot!(x, first.(collect(VolumeFluxes.current_interior_state(simulator))))
 
 
     number_of_x_cells = nx

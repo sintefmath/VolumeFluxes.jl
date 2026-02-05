@@ -47,7 +47,7 @@ IntervalWriter(step::Real, writer::Base.Callable) = IntervalWriter(step=step, wr
 IntervalWriter(writer::Base.Callable) = IntervalWriter(step=1.0, writer=writer)
 
 function (writer::IntervalWriter)(t, simulator)
-	dt = SinFVM.current_timestep(simulator)
+	dt = VolumeFluxes.current_timestep(simulator)
 	if t + dt >= writer.current_t
 		writer.writer(t, simulator)
 		writer.current_t += writer.step
