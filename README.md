@@ -1,4 +1,7 @@
 # VolumeFluxes.jl
+
+![VolumeFluxes logo ](docs/src/assets/volume_fluxes_small.png)
+
 Finite volume solvers with an emphasis on modelling surface water with the shallow water equations.
 
 ## Setting up the first time
