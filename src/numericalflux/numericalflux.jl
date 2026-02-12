@@ -36,3 +36,4 @@ end
 include("swe/centralupwind.jl")
 include("burgers/godunov.jl")
 include("burgers/rusanov.jl")
+include("triangular_flux.jl")
