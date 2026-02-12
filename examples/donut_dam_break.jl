@@ -53,6 +53,7 @@ const dam_dw    = 1.0         # extra surface elevation inside dam [m]
 const g_        = 9.81
 const L         = 30.0        # half-width of the square domain [m]
 const T_end     = 3.0         # simulation end time [s]
+const dt_fallback = 1e-3      # fallback time step when max_speed ≈ 0 [s]
 
 """
     donut_bottom(x, y)
@@ -233,7 +234,7 @@ function run_triangular(; h_target=1.0)
 
         # CFL time step
         min_dx = minimum(minimum(grid.edge_lengths[i]) for i in 1:ncells)
-        dt = max_speed > 0 ? cfl * min_dx / max_speed : 1e-3
+        dt = max_speed > 0 ? cfl * min_dx / max_speed : dt_fallback
         dt = min(dt, T_end - t)
 
         # Update
