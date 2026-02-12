@@ -52,33 +52,6 @@ function reconstruct_triangular(grid::TriangularGrid, cell_values::AbstractVecto
     for i in 1:ncells
         ci = grid.centroids[i]
 
-        # Collect candidate gradients from each neighbour pair
-        # We build one candidate gradient per neighbour edge
-        candidate_gx = MVector{3,T}(zero(T), zero(T), zero(T))
-        candidate_gy = MVector{3,T}(zero(T), zero(T), zero(T))
-        has_neighbour = MVector{3,Bool}(false, false, false)
-
-        for k in 1:3
-            nb = grid.neighbors[i][k]
-            if nb == 0
-                continue
-            end
-            has_neighbour[k] = true
-            cj = grid.centroids[nb]
-            dU = cell_values[nb] - cell_values[i]
-            dc = cj - ci
-            dist2 = dc[1]^2 + dc[2]^2
-            # For a single-variable gradient we'd do  g = dU / dist * (dc/dist)
-            # but we store per-component below and combine per variable
-            # We compute the candidate gradient projection:  g = dU * dc / |dc|^2
-            # This gives a gradient such that g · dc = dU.
-            # We store only the first component here; we process per variable in the outer loop below.
-            for v in 1:N
-                # This is a rank-1 approximation; we use it per edge direction
-                nothing  # placeholder – we'll compute below
-            end
-        end
-
         # For each conserved variable, compute the limited gradient using
         # all three candidate gradients independently.
         var_grads = MVector{N, SVector{2,T}}(ntuple(_ -> zero_grad, Val(N)))
@@ -110,8 +83,8 @@ function reconstruct_triangular(grid::TriangularGrid, cell_values::AbstractVecto
                 gx = minmod(cand_gx[1], cand_gx[2], zero(T))
                 gy = minmod(cand_gy[1], cand_gy[2], zero(T))
             elseif n_cands == 1
-                gx = zero(T)
-                gy = zero(T)
+                gx = cand_gx[1]
+                gy = cand_gy[1]
             else
                 gx = zero(T)
                 gy = zero(T)
