@@ -48,6 +48,7 @@ include("backends/kernel_abstractions_cuda.jl")
 
 include("meta/loops.jl")
 include("backends/kernel_abstractions.jl")
+include("backends/kernel_abstractions_tri.jl")
 include("backends/buffer.jl")
 include("bottom_topography.jl")
 include("equations/equation.jl")

@@ -162,6 +162,14 @@ number_of_cells(grid::TriangularGrid) = length(grid.triangles)
 
 number_of_interior_cells(grid::TriangularGrid) = number_of_cells(grid)
 
+"""
+    interior_size(grid::TriangularGrid)
+
+Return the interior size of the triangular grid.  Since triangular grids
+have no ghost cells, this is the same as `size(grid)`.
+"""
+interior_size(grid::TriangularGrid) = (number_of_cells(grid),)
+
 Base.size(grid::TriangularGrid) = (number_of_cells(grid),)
 
 """
