@@ -85,9 +85,9 @@ for backend in get_available_backends()
     CUDA.@allowscalar @test volume[1][1] == 42.0
 
     # Test range setindex! on Volume
-    new_values = [
-        @SVector [10.0, 20.0, 30.0],
-        @SVector [40.0, 50.0, 60.0],
+    new_values = SVector{3,Float64}[
+        SVector{3,Float64}(10.0, 20.0, 30.0),
+        SVector{3,Float64}(40.0, 50.0, 60.0),
     ]
     new_values_backend = VolumeFluxes.convert_to_backend(backend, new_values)
     volume[1:2] = new_values_backend
@@ -109,9 +109,9 @@ for backend in get_available_backends()
     CUDA.@allowscalar @test volume[1] == @SVector [100.0, 200.0, 300.0]
 
     # Test InteriorVolume range setindex!
-    newer_values = [
-        @SVector [1.0, 2.0, 3.0],
-        @SVector [4.0, 5.0, 6.0],
+    newer_values = SVector{3,Float64}[
+        SVector{3,Float64}(1.0, 2.0, 3.0),
+        SVector{3,Float64}(4.0, 5.0, 6.0),
     ]
     newer_values_backend = VolumeFluxes.convert_to_backend(backend, newer_values)
     inner_volume[1:2] = newer_values_backend
