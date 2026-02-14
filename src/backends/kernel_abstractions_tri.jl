@@ -18,22 +18,34 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-function compute_flux!(backend, F::NumericalFlux, output, left, right, wavespeeds, grid, equation::Equation, direction)
-    Δx = compute_dx(grid, direction)
 
-    @fvmloop for_each_inner_cell(backend, grid, direction) do ileft, imiddle, iright
-        F_right, speed_right = F(right[imiddle], left[iright], direction)
-        F_left, speed_left = F(right[ileft], left[imiddle], direction)
-        output[imiddle] -= 1 / Δx * (F_right - F_left)
-        wavespeeds[imiddle] = max(speed_right, speed_left)
-        nothing
-    end
+"""
+    for_each_cell(f, backend, grid::TriangularGrid, y...)
 
-    return maximum(wavespeeds)
+Iterate over every cell in the triangular grid, calling `f(cell_index, y...)`
+for each cell index from `1` to `number_of_cells(grid)`.
+"""
+function for_each_cell(f, backend::KernelAbstractionBackend{T}, grid::TriangularGrid, y...) where {T}
+    ev = for_each_cell_kernel(backend.backend, 1024)(f, grid, y..., ndrange=size(grid))
 end
 
 
-include("swe/centralupwind.jl")
-include("burgers/godunov.jl")
-include("burgers/rusanov.jl")
-include("triangular_flux.jl")
+@kernel function for_each_cell_neighbor_kernel(f, grid, y...)
+    I = @index(Global, Cartesian)
+    cell = toint(I)
+    for k in 1:3
+        nb = grid.neighbors[cell][k]
+        f(cell, k, nb, y...)
+    end
+end
+
+"""
+    for_each_cell_neighbor(f, backend, grid::TriangularGrid, y...)
+
+Iterate over every (cell, edge, neighbor) triple in the triangular grid.
+Calls `f(cell, edge_index, neighbor, y...)` where `neighbor` is `0`
+for boundary edges and a positive integer for interior edges.
+"""
+function for_each_cell_neighbor(f, backend::KernelAbstractionBackend{T}, grid::TriangularGrid, y...) where {T}
+    ev = for_each_cell_neighbor_kernel(backend.backend, 1024)(f, grid, y..., ndrange=size(grid))
+end
