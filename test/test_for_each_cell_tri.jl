@@ -93,12 +93,11 @@ for backend in get_available_backends()
     # Test for_each_cell with a larger grid
     # ────────────────────────────────────────────────────────────────
     # 4-triangle mesh:  split a 2×1 rectangle into 4 triangles
-    #   3 ---- 4 ---- 5
+    #   4 ---- 5 ---- 6
     #   |  T2 /|  T4 /|
     #   |   /  |   /  |
     #   | /  T1| /  T3|
-    #   1 ---- 2 ---- 5
-    # Wait, this doesn't work perfectly. Let's just use a simple 4-triangle:
+    #   1 ---- 2 ---- 3
     nodes4 = [
         SVector(0.0, 0.0), SVector(1.0, 0.0), SVector(2.0, 0.0),
         SVector(0.0, 1.0), SVector(1.0, 1.0), SVector(2.0, 1.0),
