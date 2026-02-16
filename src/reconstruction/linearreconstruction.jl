@@ -24,26 +24,33 @@ struct LinearReconstruction <: Reconstruction
     LinearReconstruction(theta=1.2) = new(theta)
 end
 
+#Adding a new reconstruction for any limiter in limiters.jl
+struct LinearLimiterReconstruction{L<:Limiter} <: Reconstruction
+    limiter::L
+end
+LinearLimiterReconstruction(lim::L) where {L<:Limiter} = LinearLimiterReconstruction{L}(lim)
 
+
+# 3-argument minmod
 function minmod(a, b, c)
     if (a > 0) && (b > 0) && (c > 0)
         return min(a, b, c)
-    elseif a < 0 && b < 0 && c < 0
+    elseif (a < 0) && (b < 0) && (c < 0)
         return max(a, b, c)
     end
     return zero(a)
 end
 
 function minmod_slope(left, center, right, theta)
-    forward_diff = right .- center
+    forward_diff  = right .- center
     backward_diff = center .- left
-    central_diff = (forward_diff .+ backward_diff) ./ 2.0
+    central_diff  = (forward_diff .+ backward_diff) ./ 2.0
     return minmod.(theta .* forward_diff, central_diff, theta .* backward_diff)
-
 end
+
+
 function reconstruct!(backend, linRec::LinearReconstruction, output_left, output_right, input_conserved, grid::Grid, direction::Direction)
     @assert grid.ghostcells[1] > 1
-
     # NOTE: dx cancel, as the slope depends on 1/dx and face values depend on dx*slope
     @fvmloop for_each_inner_cell(backend, grid, direction; ghostcells=1) do ileft, imiddle, iright
         slope = minmod_slope.(input_conserved[ileft], input_conserved[imiddle], input_conserved[iright], linRec.theta)
@@ -55,6 +62,23 @@ function reconstruct!(backend, linRec::LinearReconstruction, output_left, output
     reconstruct!(backend, linRec, output_left, output_right, input_conserved, grid, direction)
 end
 
+#Adds one generic reconstruction for arbitrary limiter in limiters.jl
+function reconstruct!(backend, linRec::LinearLimiterReconstruction, output_left, output_right, input_conserved, grid::Grid, direction::Direction)
+    @assert grid.ghostcells[1] > 1
+    lim = linRec.limiter
+    @fvmloop for_each_inner_cell(backend, grid, direction; ghostcells=1) do ileft, imiddle, iright
+        s = slope(lim, input_conserved[ileft], input_conserved[imiddle], input_conserved[iright])
+        output_left[imiddle]  = input_conserved[imiddle] .- 0.5 .* s
+        output_right[imiddle] = input_conserved[imiddle] .+ 0.5 .* s
+    end
+end
+function reconstruct!(backend, linRec::LinearLimiterReconstruction, output_left, output_right, input_conserved, grid::Grid, ::Equation, direction::Direction)
+    reconstruct!(backend, linRec, output_left, output_right, input_conserved, grid, direction)
+end
+
+
+
+#Note: Have not added limiters to SWE yet
 function reconstruct!(backend, linRec::LinearReconstruction, output_left, output_right, input_conserved, grid::Grid, eq::AllPracticalSWE, direction::Direction)
     @assert grid.ghostcells[1] > 1
 
