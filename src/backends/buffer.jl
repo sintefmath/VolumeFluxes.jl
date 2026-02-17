@@ -19,10 +19,13 @@
 # SOFTWARE.
 
 import CUDA
+import Metal
 
 convert_to_backend(backend, array::AbstractArray) = array
 convert_to_backend(backend::CUDABackend, array::AbstractArray) = CUDA.CuArray(array)
+convert_to_backend(backend::MetalBackend, array::AbstractArray) = Metal.MtlArray(array)
 convert_to_backend(backend::CPUBackend, array::CUDA.CuArray) = collect(array)
+convert_to_backend(backend::CPUBackend, array::Metal.MtlArray) = collect(array)
 
 # TODO: Do one for KA?
 
@@ -39,4 +42,8 @@ end
 
 function create_buffer(backend::CUDABackend, number_of_variables::Int64, spatial_resolution)
     CUDA.CuArray(zeros(backend.realtype, spatial_resolution..., number_of_variables))
+end
+
+function create_buffer(backend::MetalBackend, number_of_variables::Int64, spatial_resolution)
+    Metal.MtlArray(zeros(backend.realtype, spatial_resolution..., number_of_variables))
 end

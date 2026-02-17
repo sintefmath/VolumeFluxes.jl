@@ -174,13 +174,17 @@ include("interior_volume.jl")
 include("interior_volume_variable.jl")
 
 convert_to_backend(::CUDABackend, vol::Volume{A, B, C, D, <: CUDABackend, F, G}) where {A, B, C, D, F, G} = vol
+convert_to_backend(::MetalBackend, vol::Volume{A, B, C, D, <: MetalBackend, F, G}) where {A, B, C, D, F, G} = vol
 convert_to_backend(::CPUBackend, vol::Volume{A, B, C, D, <: CPUBackend, F, G}) where {A, B, C, D, F, G} = vol
 
 convert_to_backend(::CUDABackend, vol::InteriorVolume{A, B, C, D, <: CUDABackend, F, G}) where {A, B, C, D, F, G} = vol
+convert_to_backend(::MetalBackend, vol::InteriorVolume{A, B, C, D, <: MetalBackend, F, G}) where {A, B, C, D, F, G} = vol
 convert_to_backend(::CPUBackend, vol::InteriorVolume{A, B, C, D, <: CPUBackend, F, G}) where {A, B, C, D, F, G} = vol
 
 convert_to_backend(::CUDABackend, vol::VolumeVariable{A, B, C, D, <: CUDABackend, F, G}) where {A, B, C, D, F, G} = vol
+convert_to_backend(::MetalBackend, vol::VolumeVariable{A, B, C, D, <: MetalBackend, F, G}) where {A, B, C, D, F, G} = vol
 convert_to_backend(::CPUBackend, vol::VolumeVariable{A, B, C, D, <: CPUBackend, F, G}) where {A, B, C, D, F, G} = vol
 
 convert_to_backend(::CUDABackend, vol::InteriorVolumeVariable{A, B, C, D, <: CUDABackend, F, G}) where {A, B, C, D, F, G} = vol
+convert_to_backend(::MetalBackend, vol::InteriorVolumeVariable{A, B, C, D, <: MetalBackend, F, G}) where {A, B, C, D, F, G} = vol
 convert_to_backend(::CPUBackend, vol::InteriorVolumeVariable{A, B, C, D, <: CPUBackend, F, G}) where {A, B, C, D, F, G} = vol

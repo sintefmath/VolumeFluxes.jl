@@ -20,6 +20,7 @@
 
 using KernelAbstractions
 import CUDA
+import Metal
 
 abstract type Backend end
 
@@ -34,12 +35,15 @@ struct KernelAbstractionBackend{KABackendType, RealType} <: Backend
 end
 
 make_cuda_backend() = KernelAbstractionBackend(get_backend(CUDA.cu(ones(3))))
+make_metal_backend() = KernelAbstractionBackend(get_backend(Metal.MtlArray(ones(3))))
 make_cpu_backend() = KernelAbstractionBackend(get_backend(ones(3)))
 make_cpu_backend(RealType) = KernelAbstractionBackend(get_backend(ones(3)); realtype=RealType)
 const CUDABackend = KernelAbstractionBackend{CUDA.CUDAKernels.CUDABackend}
+const MetalBackend = KernelAbstractionBackend{Metal.MetalKernels.MetalBackend}
 const CPUBackend = KernelAbstractionBackend{KernelAbstractions.CPU}
 
 name(::CUDABackend) = "CUDA"
+name(::MetalBackend) = "Metal"
 name(::CPUBackend) = "CPU"
 
 function get_available_backends()
@@ -51,12 +55,29 @@ function get_available_backends()
     catch err
         @show err
     end
+    
+    try
+        metal_backend = make_metal_backend()
+        push!(backends, metal_backend)
+    catch err
+        @show err
+    end
+    
     return backends
 end
 
 function has_cuda_backend()
     try
         make_cuda_backend()
+        return true
+    catch err
+        return false
+    end
+end
+
+function has_metal_backend()
+    try
+        make_metal_backend()
         return true
     catch err
         return false
