@@ -23,10 +23,12 @@ import Metal
 using StaticArrays
 
 # Helper function to convert Float64 to Float32 for nested structures
+# Note: Method dispatch order is important here - more specific types first
 convert_to_float32(x::SVector{N, Float64}) where N = convert(SVector{N, Float32}, x)
 convert_to_float32(x::SVector{N, T}) where {N, T} = x  # Already not Float64, keep as is
-convert_to_float32(x::AbstractArray{Float64}) = Float32.(x)  # Convert Float64 arrays to Float32
-convert_to_float32(x::AbstractArray{T}) where T = map(convert_to_float32, x)  # Recursively handle nested arrays (non-Float64 element type)
+convert_to_float32(x::Array{Float64}) = Float32.(x)  # Convert Float64 arrays to Float32  
+convert_to_float32(x::Array{Float64, N}) where N = Float32.(x)  # Multi-dimensional Float64 arrays
+convert_to_float32(x::AbstractArray) = map(convert_to_float32, x)  # Recursively handle nested arrays
 convert_to_float32(x::Float64) = Float32(x)
 convert_to_float32(x) = x  # For other types, keep as is
 
