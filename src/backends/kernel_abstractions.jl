@@ -55,14 +55,14 @@ function get_available_backends()
     catch err
         @show err
     end
-    
+
     try
         metal_backend = make_metal_backend()
         push!(backends, metal_backend)
     catch err
         @show err
     end
-    
+
     return backends
 end
 
