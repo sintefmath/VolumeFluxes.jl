@@ -27,17 +27,12 @@ using LinearAlgebra
 function test_compute_flux_tri(backend)
     backend_name = VolumeFluxes.name(backend)
 
-    # Build a simple triangular grid: 4 triangles on the unit square
+    # Build a simple triangular grid: 2 triangles on the unit square
     #   4 ---- 3
-    #   | T2 / | T4
-    #   |  /   |  /
-    #   |/ T1  |/ T3
-    #   1 ---- 2 ---- 5
-    #          |  T5 /
-    #          |   /
-    #          |/ T6
-    #          6
-    # Using a 6-node, 4-triangle mesh for reasonable coverage
+    #   | T2 / |
+    #   |  /   |
+    #   |/ T1  |
+    #   1 ---- 2
     nodes = SVector{2,Float64}[
         SVector(0.0, 0.0),
         SVector(1.0, 0.0),
@@ -112,7 +107,7 @@ function test_compute_flux_tri(backend)
         @test max_speed ≈ max_speed_y
     end
 
-    # Test with a larger mesh: structured 4-triangle grid
+    # Test with a larger mesh: structured 8-triangle grid on the unit square
     nodes_large = SVector{2,Float64}[
         SVector(0.0, 0.0), SVector(0.5, 0.0), SVector(1.0, 0.0),
         SVector(0.0, 0.5), SVector(0.5, 0.5), SVector(1.0, 0.5),

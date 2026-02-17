@@ -65,14 +65,10 @@ function compute_flux!(backend, F::NumericalFlux, output, left, right,
     # Call the existing triangular flux accumulator
     max_speed = compute_triangular_fluxes!(rhs, grid, equation, cell_values, gradients)
 
-    # Write results into the output Volume and wavespeeds
-    @fvmloop for_each_cell(backend, grid) do i
-        output[i] += rhs[i]
-        wavespeeds[i] = zero(eltype(wavespeeds))
-    end
-
-    # Set per-cell wavespeeds by computing max edge speed per cell
+    # Write results into the output Volume and set per-cell wavespeeds
     for i in 1:ncells
+        output[i] += rhs[i]
+
         cell_speed = zero(Float64)
         ci = grid.centroids[i]
         for k in 1:3
