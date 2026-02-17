@@ -34,10 +34,10 @@ struct KernelAbstractionBackend{KABackendType, RealType} <: Backend
     KernelAbstractionBackend(backend; realtype=Float64) =  new{typeof(backend), realtype}(backend, realtype)
 end
 
-make_cuda_backend() = KernelAbstractionBackend(get_backend(CUDA.cu(ones(3))))
-make_metal_backend() = KernelAbstractionBackend(get_backend(Metal.MtlArray(ones(3))))
+make_cuda_backend(RealType) = KernelAbstractionBackend(get_backend(CUDA.cu(ones(RealType, 3))); realtype=RealType)
+make_metal_backend(RealType=Float32) = KernelAbstractionBackend(get_backend(Metal.MtlArray(ones(RealType, 3))); realtype=RealType)
 make_cpu_backend() = KernelAbstractionBackend(get_backend(ones(3)))
-make_cpu_backend(RealType) = KernelAbstractionBackend(get_backend(ones(3)); realtype=RealType)
+make_cpu_backend(RealType) = KernelAbstractionBackend(get_backend(ones(RealType, 3)); realtype=RealType)
 const CUDABackend = KernelAbstractionBackend{CUDA.CUDAKernels.CUDABackend}
 const MetalBackend = KernelAbstractionBackend{Metal.MetalKernels.MetalBackend}
 const CPUBackend = KernelAbstractionBackend{KernelAbstractions.CPU}
@@ -46,21 +46,25 @@ name(::CUDABackend) = "CUDA"
 name(::MetalBackend) = "Metal"
 name(::CPUBackend) = "CPU"
 
-function get_available_backends()
+function get_available_backends(RealType=Float64)
     backends = Any[make_cpu_backend()]
 
     try
-        cuda_backend = make_cuda_backend()
+        cuda_backend = make_cuda_backend(RealType)
         push!(backends, cuda_backend)
     catch err
         @show err
     end
 
     try
-        metal_backend = make_metal_backend()
-        push!(backends, metal_backend)
+        push!(backends, make_metal_backend(RealType))
     catch err
         @show err
+        try
+            push!(backends, make_metal_backend())
+        catch err2
+            @show err2
+        end
     end
 
     return backends
