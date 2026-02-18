@@ -49,7 +49,7 @@ end
     reconstruct!(backend, ::NoReconstruction, output_left, output_right, input_conserved, grid::TriangularGrid, equation, direction)
 
 No-reconstruction specialisation for triangular grids.  Cell-averaged values
-are copied into `output_left`; `output_right` is unused but zeroed.
+are copied into both `output_left` and `output_right`.
 """
 function reconstruct!(backend, ::NoReconstruction, output_left, output_right, input_conserved, grid::TriangularGrid, equation::Equation, direction::Direction)
     @fvmloop for_each_cell(backend, grid) do i

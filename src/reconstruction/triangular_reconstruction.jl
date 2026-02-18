@@ -112,6 +112,8 @@ end
 
 # Module-level gradient cache for passing data from reconstruct! to compute_flux!
 # on triangular grids. Keyed by objectid of the grid.
+# NOTE: Not thread-safe.  The current codebase is single-threaded; if
+# multi-threaded usage is needed, wrap accesses with a lock.
 const _TRI_GRADIENT_CACHE = Dict{UInt, Any}()
 
 """

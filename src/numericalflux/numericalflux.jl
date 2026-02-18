@@ -54,13 +54,14 @@ function compute_flux!(backend, F::NumericalFlux, output, left, right,
         cell_values[i] = left[i]
     end
 
-    # Retrieve gradients from cache (set by reconstruct!)
+    # Retrieve gradients from cache (set by LinearReconstruction's reconstruct!).
+    # When NoReconstruction is used, no cache entry exists and zero gradients
+    # are used, giving piecewise-constant reconstruction at face values.
     grid_id = objectid(grid)
     if haskey(_TRI_GRADIENT_CACHE, grid_id)
         gradients = _TRI_GRADIENT_CACHE[grid_id]::Vector{SVector{3, SVector{2, Float64}}}
         delete!(_TRI_GRADIENT_CACHE, grid_id)
     else
-        # Fallback: zero gradients (NoReconstruction path)
         zero_grad = SVector{2,Float64}(0.0, 0.0)
         gradients = [SVector{3, SVector{2, Float64}}(zero_grad, zero_grad, zero_grad) for _ in 1:ncells]
     end
