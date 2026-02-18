@@ -128,7 +128,7 @@ irrelevant), the reconstruction is only performed for the first direction;
 subsequent directions reuse the cached result.
 """
 function reconstruct!(backend, ::LinearReconstruction, output_left, output_right,
-                      input_conserved, grid::TriangularGrid, equation::Equation, direction)
+                      input_conserved, grid::TriangularGrid, equation::Equation, direction::Direction)
     ncells = number_of_cells(grid)
 
     # Copy cell values into output_left
