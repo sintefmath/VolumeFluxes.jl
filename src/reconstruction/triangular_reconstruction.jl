@@ -109,3 +109,40 @@ function evaluate_reconstruction(cell_value::SVector{N,T}, gradient::SVector{N,S
     dx = point - centroid
     return SVector{N,T}(ntuple(v -> cell_value[v] + gradient[v][1] * dx[1] + gradient[v][2] * dx[2], Val(N)))
 end
+
+# Module-level gradient cache for passing data from reconstruct! to compute_flux!
+# on triangular grids. Keyed by objectid of the grid.
+const _TRI_GRADIENT_CACHE = Dict{UInt, Any}()
+
+"""
+    reconstruct!(backend, ::LinearReconstruction, output_left, output_right,
+                 input_conserved, grid::TriangularGrid, equation, direction)
+
+Linear reconstruction specialisation for triangular grids.  Computes limited
+piecewise-linear gradients via [`reconstruct_triangular`](@ref) and caches
+them for the subsequent [`compute_flux!`](@ref) call.  Cell-averaged values
+are copied into `output_left`.
+
+Since triangular grids process all edges in a single pass (direction is
+irrelevant), the reconstruction is only performed for the first direction;
+subsequent directions reuse the cached result.
+"""
+function reconstruct!(backend, ::LinearReconstruction, output_left, output_right,
+                      input_conserved, grid::TriangularGrid, equation::Equation, direction)
+    ncells = number_of_cells(grid)
+
+    # Copy cell values into output_left
+    @fvmloop for_each_cell(backend, grid) do i
+        output_left[i] = input_conserved[i]
+    end
+
+    # Extract cell values for gradient computation
+    cell_values = Vector{SVector{3, Float64}}(undef, ncells)
+    for i in 1:ncells
+        cell_values[i] = input_conserved[i]
+    end
+
+    # Compute gradients and cache them
+    gradients = reconstruct_triangular(grid, cell_values)
+    _TRI_GRADIENT_CACHE[objectid(grid)] = gradients
+end

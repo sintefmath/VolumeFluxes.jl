@@ -33,31 +33,37 @@ function compute_flux!(backend, F::NumericalFlux, output, left, right, wavespeed
 end
 
 """
-    compute_flux!(backend, F, output, state, state, wavespeeds, grid::TriangularGrid, equation, direction)
+    compute_flux!(backend, F, output, left, right, wavespeeds, grid::TriangularGrid, equation, direction)
 
 Specialised `compute_flux!` for triangular grids.  The `direction` argument is
 ignored because all edges are processed in a single pass.  Reconstruction
-gradients are computed internally via `reconstruct_triangular`, and the
-central-upwind numerical flux is evaluated on every edge with boundary
-conditions applied directly (no ghost cells).
+gradients are read from the cache populated by the preceding `reconstruct!`
+call, and the central-upwind numerical flux is evaluated on every edge with
+boundary conditions applied directly (no ghost cells).
 
-The `left` and `right` arguments (which on Cartesian grids carry reconstructed
-face values) are unused; the current cell-averaged state is read from `left`
-(which equals `state` in the standard calling convention).
+Cell-averaged values are read from `left` (populated by `reconstruct!`).
 """
 function compute_flux!(backend, F::NumericalFlux, output, left, right,
                        wavespeeds, grid::TriangularGrid,
                        equation::ShallowWaterEquationsPure, direction)
     ncells = number_of_cells(grid)
 
-    # Extract cell-averaged values from the Volume
+    # Extract cell-averaged values from the left buffer (set by reconstruct!)
     cell_values = Vector{SVector{3, Float64}}(undef, ncells)
     for i in 1:ncells
         cell_values[i] = left[i]
     end
 
-    # Compute limited reconstruction gradients
-    gradients = reconstruct_triangular(grid, cell_values)
+    # Retrieve gradients from cache (set by reconstruct!)
+    grid_id = objectid(grid)
+    if haskey(_TRI_GRADIENT_CACHE, grid_id)
+        gradients = _TRI_GRADIENT_CACHE[grid_id]::Vector{SVector{3, SVector{2, Float64}}}
+        delete!(_TRI_GRADIENT_CACHE, grid_id)
+    else
+        # Fallback: zero gradients (NoReconstruction path)
+        zero_grad = SVector{2,Float64}(0.0, 0.0)
+        gradients = [SVector{3, SVector{2, Float64}}(zero_grad, zero_grad, zero_grad) for _ in 1:ncells]
+    end
 
     # Zero-initialise an accumulator for the RHS contributions
     rhs = zeros(SVector{3, Float64}, ncells)
