@@ -32,7 +32,80 @@ function compute_flux!(backend, F::NumericalFlux, output, left, right, wavespeed
     return maximum(wavespeeds)
 end
 
+"""
+    compute_flux!(backend, F, output, left, right, wavespeeds, grid::TriangularGrid, equation, direction)
+
+Specialised `compute_flux!` for triangular grids.  The `direction` argument is
+ignored because all edges are processed in a single pass.  Reconstruction
+gradients are read from the cache populated by the preceding `reconstruct!`
+call, and the central-upwind numerical flux is evaluated on every edge with
+boundary conditions applied directly (no ghost cells).
+
+Cell-averaged values are read from `left` (populated by `reconstruct!`).
+"""
+function compute_flux!(backend, F::NumericalFlux, output, left, right,
+                       wavespeeds, grid::TriangularGrid,
+                       equation::ShallowWaterEquationsPure, direction)
+    ncells = number_of_cells(grid)
+
+    # Extract cell-averaged values from the left buffer (set by reconstruct!)
+    cell_values = Vector{SVector{3, Float64}}(undef, ncells)
+    for i in 1:ncells
+        cell_values[i] = left[i]
+    end
+
+    # Retrieve gradients from cache (set by LinearReconstruction's reconstruct!).
+    # When NoReconstruction is used, no cache entry exists and zero gradients
+    # are used, giving piecewise-constant reconstruction at face values.
+    grid_id = objectid(grid)
+    if haskey(_TRI_GRADIENT_CACHE, grid_id)
+        gradients = _TRI_GRADIENT_CACHE[grid_id]::Vector{SVector{3, SVector{2, Float64}}}
+        delete!(_TRI_GRADIENT_CACHE, grid_id)
+    else
+        zero_grad = SVector{2,Float64}(0.0, 0.0)
+        gradients = [SVector{3, SVector{2, Float64}}(zero_grad, zero_grad, zero_grad) for _ in 1:ncells]
+    end
+
+    # Zero-initialise an accumulator for the RHS contributions
+    rhs = zeros(SVector{3, Float64}, ncells)
+
+    # Call the existing triangular flux accumulator
+    max_speed = compute_triangular_fluxes!(rhs, grid, equation, cell_values, gradients)
+
+    # Write results into the output Volume and set per-cell wavespeeds
+    for i in 1:ncells
+        output[i] += rhs[i]
+
+        cell_speed = zero(Float64)
+        ci = grid.centroids[i]
+        for k in 1:3
+            normal = grid.edge_normals[i][k]
+            nb = grid.neighbors[i][k]
+
+            vi1 = grid.triangles[i][k]
+            vi2 = grid.triangles[i][k % 3 + 1]
+            edge_mid = (grid.nodes[vi1] + grid.nodes[vi2]) / 2.0
+
+            U_minus = evaluate_reconstruction(cell_values[i], gradients[i], ci, edge_mid)
+
+            if nb != 0
+                cj = grid.centroids[nb]
+                U_plus = evaluate_reconstruction(cell_values[nb], gradients[nb], cj, edge_mid)
+            else
+                U_plus = _boundary_state(grid.boundary, U_minus, normal)
+            end
+
+            _, speed = central_upwind_flux(equation, U_minus, U_plus, normal)
+            cell_speed = max(cell_speed, speed)
+        end
+        wavespeeds[i] = cell_speed
+    end
+
+    return max_speed
+end
+
 
 include("swe/centralupwind.jl")
 include("burgers/godunov.jl")
 include("burgers/rusanov.jl")
+include("triangular_flux.jl")
