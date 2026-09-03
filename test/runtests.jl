@@ -21,6 +21,8 @@
 using VolumeFluxes
 using Test
 
+include("testing_utils.jl")
+
 # TODO: Go through tests and check they do not take longer time than necessary
 using CairoMakie
 
