@@ -20,11 +20,7 @@
 
 using Documenter, Literate, VolumeFluxes, Parameters
 
-push!(LOAD_PATH, "../src/")
-push!(LOAD_PATH, "../examples/")
-
-examples_dir = realpath("examples/")
-counterfile = 1
+examples_dir = realpath(joinpath(@__DIR__, "..", "examples"))
 
 
 function process_includes(content)
@@ -37,20 +33,25 @@ function process_includes(content)
     return content
 end
 #Literate.markdown("examples/urban.jl", "docs/src/"; execute=false, preprocess=process_includes)
-Literate.markdown("examples/terrain.jl", "docs/src/"; execute=false, preprocess=process_includes)
-Literate.markdown("examples/optimization.jl", "docs/src/"; execute=false, preprocess=process_includes)
-Literate.markdown("examples/shallow_water_1d.jl", "docs/src/"; execute=false, preprocess=process_includes)
-Literate.markdown("examples/callbacks.jl", "docs/src/"; execute=false, preprocess=process_includes)
+for example in ("terrain", "optimization", "shallow_water_1d", "callbacks")
+    Literate.markdown(joinpath(examples_dir, "$example.jl"), joinpath(@__DIR__, "src");
+        execute=false, preprocess=process_includes)
+end
 
 makedocs(modules = [VolumeFluxes], 
+    root=@__DIR__,
+    format=Documenter.HTML(
+        prettyurls=get(ENV, "CI", "false") == "true",
+        canonical="https://sintefmath.github.io/VolumeFluxes.jl/"),
     sitename="VolumeFluxes.jl",
     draft=false,
     pages = [
         "Introduction" => "index.md",
-        "Examples" => [#"shallow_water_1d.md",
-                       #"terrain.md",
-                       #"optimization.md", 
+        "Examples" => ["shallow_water_1d.md",
+                       "terrain.md",
+                       "optimization.md",
                        "callbacks.md"],
         "Index" => "indexlist.md",
         "Public API" => "api.md"
     ])
+touch(joinpath(@__DIR__, "build", ".nojekyll"))
