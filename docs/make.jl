@@ -35,7 +35,7 @@ end
 #Literate.markdown("examples/urban.jl", "docs/src/"; execute=false, preprocess=process_includes)
 for example in ("terrain", "optimization", "shallow_water_1d", "callbacks")
     Literate.markdown(joinpath(examples_dir, "$example.jl"), joinpath(@__DIR__, "src");
-        execute=false, preprocess=process_includes)
+        execute=false, flavor=Literate.CommonMarkFlavor(), preprocess=process_includes)
 end
 
 makedocs(modules = [VolumeFluxes], 
