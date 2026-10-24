@@ -23,6 +23,12 @@ using Test
 
 include("testing_utils.jl")
 
+if VolumeFluxes.has_cuda_backend()
+    @info "Running CPU and CUDA tests."
+else
+    @info "Running CPU tests; GPU coverage is skipped (CUDA unavailable or VOLUMEFLUXES_BACKEND=cpu)."
+end
+
 # TODO: Go through tests and check they do not take longer time than necessary
 using CairoMakie
 
@@ -30,14 +36,13 @@ using CairoMakie
 CairoMakie.activate!(type = "svg")
 @testset "VolumeFluxes tests" begin
     # Run all scripts in test/test_*.jl
-    ls_test = readdir("test")
-    for test_file in readdir("test")
+    for test_file in readdir(@__DIR__)
         if startswith(test_file, "test_") && endswith(test_file, ".jl")
             #@show test_name, test_file
             
             test_name = replace(test_file, ".jl"=>"")
             @testset "$(test_name)" begin
-                include(test_file)
+                include(joinpath(@__DIR__, test_file))
             end
       
         end

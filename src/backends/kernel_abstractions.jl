@@ -36,7 +36,7 @@ end
 make_cuda_backend() = KernelAbstractionBackend(get_backend(CUDA.cu(ones(3))))
 make_cpu_backend() = KernelAbstractionBackend(get_backend(ones(3)))
 make_cpu_backend(RealType) = KernelAbstractionBackend(get_backend(ones(3)); realtype=RealType)
-const CUDABackend = KernelAbstractionBackend{CUDA.CUDAKernels.CUDABackend}
+const CUDABackend = KernelAbstractionBackend{CUDA.CUDABackend}
 const CPUBackend = KernelAbstractionBackend{KernelAbstractions.CPU}
 
 name(::CUDABackend) = "CUDA"
@@ -45,23 +45,23 @@ name(::CPUBackend) = "CPU"
 function get_available_backends()
     backends = Any[make_cpu_backend()]
 
-    try
-        cuda_backend = make_cuda_backend()
-        push!(backends, cuda_backend)
-    catch err
-        @show err
+    if has_cuda_backend()
+        push!(backends, make_cuda_backend())
     end
     return backends
 end
 
-function has_cuda_backend()
-    try
-        make_cuda_backend()
-        return true
-    catch err
-        return false
-    end
+function cuda_enabled(mode, functional=CUDA.functional)
+    mode in ("auto", "cpu", "gpu") ||
+        throw(ArgumentError("VOLUMEFLUXES_BACKEND must be auto, cpu, or gpu; got $(repr(mode))"))
+    mode == "cpu" && return false
+    available = functional()
+    mode == "gpu" && !available &&
+        error("VOLUMEFLUXES_BACKEND=gpu requires functional CUDA; check the NVIDIA driver and GPU.")
+    return available
 end
+
+has_cuda_backend() = cuda_enabled(get(ENV, "VOLUMEFLUXES_BACKEND", "auto"))
 
 @kernel function for_each_inner_cell_kernel(f, grid, direction, ghostcells, y...)
     J = @index(Global, Cartesian)
