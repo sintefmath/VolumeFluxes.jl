@@ -77,7 +77,7 @@ for backend in get_available_backends()
 
         p = heatmap!(ax1, terrain, label = "Laplace", colorrange = (minimum(terrain), 2))
         Colorbar(f[1, 2], p)
-        display(f)
+        save("figs/bay/terrain.png", f, px_per_unit = 2)
     end
 	
 
@@ -132,5 +132,26 @@ for backend in get_available_backends()
 	total_water_writer(0.0, simulator)
 	total_water_writer_interval_writer = IntervalWriter(step = 10.0, writer = total_water_writer)
 
-	VolumeFluxes.simulate_to_time(simulator, T; maximum_timestep = 1.0, callback = [callback_to_simulator, total_water_writer_interval_writer])
+	VolumeFluxes.simulate_to_time(simulator, T; maximum_timestep = 1.0, callback = [callback_to_simulator, total_water_writer_interval_writer]) #src
+#md 	VolumeFluxes.simulate_to_time(simulator, T; maximum_timestep = 1.0, callback = [callback_to_simulator, total_water_writer_interval_writer], show_progress = false)
+	callback(terrain, VolumeFluxes.name(backend), T, simulator)
 end
+
+# ## Results
+# The figures below are written to the `figs/bay` directory while the example runs.
+#
+# The terrain used in the simulation, after coarsening and infill of missing values:
+#
+# ![Terrain of the bay](figs/bay/terrain.png)
+#
+# The Horton infiltration rate as a function of time (in hours):
+#
+# ![Horton infiltration rate](figs/bay/infiltration.png)
+#
+# The total volume of water remaining on the terrain, compared to the total amount of rain:
+#
+# ![Total water volume](figs/bay/total_water.png)
+#
+# The water depth at the end of the simulation:
+#
+# ![Final water depth](figs/bay/CPU/state_3600.png)

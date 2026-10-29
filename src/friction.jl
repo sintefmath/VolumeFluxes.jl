@@ -45,14 +45,9 @@ end
 function implicit_friction(friction::ImplicitFriction, equation::AllSWE1D, state, output, Bm, dt)
     h_star = desingularize(equation, state[1] - Bm)
     u = state[2] / h_star
-    speed = sqrt(u^2)
-
-    # This looks weird, but basically fixes the AD issue.
-    # In essence, if the speed is zero, we don't want any friction,
-    # so setting speed to zero will also make the derivative of speed zero.
-    if speed == 0.0
-        speed = 0.0
-    end
+    # Using abs instead of sqrt(u^2) avoids the infinite derivative of sqrt at zero,
+    # which would otherwise give NaN derivatives when differentiating with ForwardDiff.
+    speed = abs(u)
 
     friction_factor = @SVector [0.0, friction.friction_function(friction.Cz, h_star, speed)]
 
@@ -63,13 +58,16 @@ function implicit_friction(friction::ImplicitFriction, equation::AllSWE2D, state
     h_star = desingularize(equation, state[1] - Bm)
     u = state[2] / h_star
     v = state[3] / h_star
-    speed = sqrt(u^2 + v^2)
+    speed_squared = u^2 + v^2
 
-    # This looks weird, but basically fixes the AD issue.
-    # In essence, if the speed is zero, we don't want any friction,
-    # so setting speed to zero will also make the derivative of speed zero.
-    if speed == 0.0
-        speed = zero(speed)
+    # sqrt has an infinite derivative at zero, which gives NaN derivatives when
+    # differentiating with ForwardDiff. If the speed is zero, we don't want any friction,
+    # so we skip the sqrt to also make the derivative of speed zero.
+    # NOTE: We compare the value only, since ForwardDiff (>= 1.0) also compares the partials in ==.
+    if ForwardDiff.value(speed_squared) == 0
+        speed = zero(speed_squared)
+    else
+        speed = sqrt(speed_squared)
     end
     friction_scalar = friction.friction_function(friction.Cz, h_star, speed)
     friction_factor = @SVector [0.0, friction_scalar, friction_scalar]

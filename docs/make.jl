@@ -23,19 +23,27 @@ using Documenter, Literate, VolumeFluxes, Parameters
 examples_dir = realpath(joinpath(@__DIR__, "..", "examples"))
 
 
+# Remove the license header at the top of each example so it does not show up in the documentation
+function strip_license_header(content)
+    return replace(content, r"\A# Copyright.*?# SOFTWARE\.\n\n?"s => "")
+end
+
 function process_includes(content)
     # Replace include statements with actual content
     while (m = match(r"include\(\"([^\"]+)\"\)", content)) !== nothing
         include_path = joinpath(examples_dir, m.captures[1])
-        include_content = read(include_path, String)
+        include_content = strip_license_header(read(include_path, String))
         content = replace(content, m.match => include_content)
     end    
     return content
 end
+
+preprocess(content) = process_includes(strip_license_header(content))
+
 #Literate.markdown("examples/urban.jl", "docs/src/"; execute=false, preprocess=process_includes)
 for example in ("terrain", "optimization", "shallow_water_1d", "callbacks")
     Literate.markdown(joinpath(examples_dir, "$example.jl"), joinpath(@__DIR__, "src");
-        execute=false, flavor=Literate.CommonMarkFlavor(), preprocess=process_includes)
+        execute=false, preprocess=preprocess)
 end
 
 makedocs(modules = [VolumeFluxes], 
