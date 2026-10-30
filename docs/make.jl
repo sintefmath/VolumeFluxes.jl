@@ -40,6 +40,10 @@ end
 
 preprocess(content) = process_includes(strip_license_header(content))
 
+# Documenter shows `assets/logo.png` in the sidebar, so expose the project logo under that name
+cp(joinpath(@__DIR__, "src", "assets", "volume_fluxes_small.png"),
+    joinpath(@__DIR__, "src", "assets", "logo.png"); force=true)
+
 #Literate.markdown("examples/urban.jl", "docs/src/"; execute=false, preprocess=process_includes)
 for example in ("terrain", "optimization", "shallow_water_1d", "callbacks")
     Literate.markdown(joinpath(examples_dir, "$example.jl"), joinpath(@__DIR__, "src");
@@ -50,7 +54,9 @@ makedocs(modules = [VolumeFluxes],
     root=@__DIR__,
     format=Documenter.HTML(
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://sintefmath.github.io/VolumeFluxes.jl/"),
+        canonical="https://sintefmath.github.io/VolumeFluxes.jl/",
+        assets=["assets/custom.css"],
+        sidebar_sitename=false),
     sitename="VolumeFluxes.jl",
     draft=false,
     pages = [
