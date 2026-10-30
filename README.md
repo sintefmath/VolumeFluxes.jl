@@ -1,114 +1,85 @@
-# VolumeFluxes.jl
+<p align="center">
+  <img src="docs/src/assets/volume_fluxes_small.png" alt="VolumeFluxes.jl" width="480">
+</p>
 
-![VolumeFluxes logo ](docs/src/assets/volume_fluxes_small.png)
+<p align="center">
+  <a href="https://github.com/sintefmath/VolumeFluxes.jl/actions/workflows/tests.yml"><img src="https://github.com/sintefmath/VolumeFluxes.jl/actions/workflows/tests.yml/badge.svg?branch=main" alt="CPU tests"></a>
+  <a href="https://github.com/sintefmath/VolumeFluxes.jl/actions/workflows/docs.yml"><img src="https://github.com/sintefmath/VolumeFluxes.jl/actions/workflows/docs.yml/badge.svg?branch=main" alt="Documentation build"></a>
+  <a href="https://sintefmath.github.io/VolumeFluxes.jl/"><img src="https://img.shields.io/badge/docs-latest-blue.svg" alt="Documentation"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT license"></a>
+</p>
 
-Finite volume solvers with an emphasis on modelling surface water with the shallow water equations.
+**VolumeFluxes.jl** is a Julia framework for solving conservation and balance laws with the finite volume method, with an emphasis on modelling surface water using the shallow water equations. It is developed by the [Applied Computational Science](https://www.sintef.no/en/digital/departments-new/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/) research group at [SINTEF Digital](https://www.sintef.no/en/digital/).
 
-## Setting up the first time
+## Features
 
-Setting up the project directly should just be (run from the root of the repository)
+- Shallow water equations in one and two dimensions, with bottom topography, friction, rain and infiltration source terms
+- CPU and CUDA GPU backends through KernelAbstractions.jl
+- Differentiable simulations with ForwardDiff.jl for optimization and inverse problems
+- Composable grids, numerical fluxes, reconstructions, time steppers and callbacks
+
+## Getting started
+
+From the root of the repository, instantiate the project environment:
 
 ```bash
-julia --project
-] instantiate
+julia --project -e 'using Pkg; Pkg.instantiate()'
 ```
 
-It is probably a good idea to run all tests first verify everything installed correctly, so from the root of the repository, run
+Then run the test suite to verify the installation:
 
 ```bash
-julia --project test/runtests.jl
-```
-
-### Test validation and GPU coverage
-
-CI targets Julia 1.10 (a conservative baseline) and the latest stable Julia 1.x
-on Linux; this is a validation matrix, not a claim of compatibility with all
-intervening releases. The project previously declared no Julia compatibility range.
-Pull requests, pushes to `main`, and manual **CPU tests** runs execute the full
-test suite with CPU backends only. GPU portions of mixed test files are skipped,
-not reported as GPU validation. CairoMakie uses its headless SVG backend and
-diagnostic plot display is disabled by default.
-
-From the repository root, after instantiation:
-
-```bash
-# Auto (default): CPU plus CUDA when CUDA.functional() is true
 julia --project -e 'using Pkg; Pkg.test()'
-# CPU only, without probing a CUDA driver/device
-VOLUMEFLUXES_BACKEND=cpu julia --project -e 'using Pkg; Pkg.test()'
-# CPU plus required CUDA; errors rather than silently falling back
-VOLUMEFLUXES_BACKEND=gpu julia --project -e 'using Pkg; Pkg.test()'
 ```
-
-`VOLUMEFLUXES_BACKEND` accepts only `auto`, `cpu`, or `gpu` and controls backend
-availability checks. Explicit `make_cuda_backend()` calls still request CUDA.
-The suite logs whether GPU coverage is included or skipped.
-
-**GPU tests (manual)** is independent of CPU CI and runs only when a maintainer
-dispatches it on `main`. No GPU runner is assumed or paid runner enabled.
-To use it, register a Linux x64 self-hosted runner with the labels `self-hosted`,
-`linux`, `x64`, and `cuda`, a CUDA.jl-supported NVIDIA GPU/driver, and network
-access for Julia packages/artifacts. It must support the Node.js runtime used by
-the actions; CUDA.jl normally downloads its own toolkit. Confirm
-`CUDA.functional()` is true on that runner. Without a matching runner the manual
-job queues; with nonfunctional CUDA it fails.
-
-Use an isolated, preferably ephemeral runner with no sensitive credentials and
-restrict runner access to trusted workflows. Never dispatch unreviewed code on
-it. The workflow deliberately accepts no PR/ref input, checks out only `main`,
-and never runs on `pull_request` or `pull_request_target`.
 
 ## Examples
-We currently have a couple ofexamples for a full simulation scenario, see
 
-  * `examples/shallow_water_1d.jl`
-  * `examples/urban.jl`
-  * `examples/terrain.jl`
+Complete simulation scenarios live in [`examples/`](examples):
 
-## Generating the documentation
+| Example | Description |
+| --- | --- |
+| [`shallow_water_1d.jl`](examples/shallow_water_1d.jl) | 1D shallow water equations on a flat bottom |
+| [`terrain.jl`](examples/terrain.jl) | Rain and infiltration on a terrain with a bay |
+| [`optimization.jl`](examples/optimization.jl) | Wall placement optimized with automatic differentiation |
+| [`callbacks.jl`](examples/callbacks.jl) | Monitoring a simulation with callbacks |
+| [`urban.jl`](examples/urban.jl) | Flow over an urban terrain model with buildings (requires local data files) |
 
-Run (note: currently takes a couple of minutes)
+Most of these are also rendered in the [documentation](https://sintefmath.github.io/VolumeFluxes.jl/).
 
-    julia --project docs/make.jl
+## Testing
 
-To view the generated documentation, it is probably a good idea to install the `LiveServer` package and view said documentation through that
+The backend used by the test suite is selected with the `VOLUMEFLUXES_BACKEND` environment variable:
 
-    julia -e 'using LiveServer; serve(dir="docs/build")'
+| Value | Behaviour |
+| --- | --- |
+| `auto` (default) | CPU, plus CUDA when `CUDA.functional()` is true |
+| `cpu` | CPU only, without probing for a CUDA driver or device |
+| `gpu` | CPU plus CUDA; fails instead of silently falling back |
 
-then point your browser to `localhost:8000`.
+```bash
+VOLUMEFLUXES_BACKEND=cpu julia --project -e 'using Pkg; Pkg.test()'
+```
 
-The **Documentation** workflow validates builds on PRs with read-only permissions,
-and publishes on pushes to `main` or manual runs on `main`. Literate examples are
-converted without execution (no GPU simulations). The Pages artifact contains
-`docs/build/index.html` and `.nojekyll`; canonical links target
-<https://sintefmath.github.io/VolumeFluxes.jl/>. Local builds use file-style HTML
-links; CI builds use directory-style URLs for Pages.
+Explicit `make_cuda_backend()` calls still request CUDA regardless of this setting, and the suite logs whether GPU coverage was included or skipped.
 
-One-time maintainer setup: select **Settings → Pages → Build and deployment →
-Source: GitHub Actions**, and allow deployment from `main` in the `github-pages`
-environment. These repository settings are not changed by this implementation.
-Only the separate, default-branch deployment job receives Pages/OIDC write
-permissions; PRs and forks cannot publish.
+Continuous integration runs the CPU test suite on Julia 1.10 and the latest stable 1.x release for every pull request and push to `main`. GPU tests are run manually on a dedicated CUDA runner.
 
-## License information
-MIT License
+## Documentation
 
-Copyright (c) 2024 SINTEF AS
+The documentation is published at <https://sintefmath.github.io/VolumeFluxes.jl/>. To build it locally (this takes a few minutes):
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+```bash
+julia --project docs/make.jl
+```
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Then serve it with [LiveServer.jl](https://github.com/JuliaDocs/LiveServer.jl) and open <http://localhost:8000>:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+```bash
+julia -e 'using LiveServer; serve(dir="docs/build")'
+```
+
+Examples are converted with Literate.jl without being executed, so building the documentation does not require a GPU.
+
+## License
+
+VolumeFluxes.jl is released under the [MIT License](LICENSE). Copyright (c) 2024 SINTEF AS.
